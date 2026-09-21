@@ -102,7 +102,7 @@ async function loginUserController(req, res) {
 async function logoutUserController(req, res) {
   const token = req.cookies.token
 
-  if(token) {
+  if (token) {
     await tokenBlacklistModel.create({ token })
   }
   res.clearCookie("token")
@@ -122,7 +122,7 @@ async function getMeController(req, res) {
 
   res.status(200).json({
     message: "User detail fetched successfully.",
-    user:{
+    user: {
       id: user._id,
       username: user.username,
       email: user.email

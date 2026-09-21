@@ -111,10 +111,12 @@ async function generateInterviewReport({
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        responseJsonSchema: zodToJsonSchema(interviewReportSchema),
+        responseSchema: zodToJsonSchema(interviewReportSchema),
       },
     });
-    console.log(JSON.parse(response.text));
+
+    return JSON.parse(response.text);
+    
   } catch (err) {
     console.error("Gemini API Error:", err);
 
