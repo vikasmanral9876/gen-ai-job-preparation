@@ -32,14 +32,18 @@ export const useInterview = () => {
         return response?.interviewReport
     }
 
-    const getReportById = async (interviewId) => {
+    const getReportById = async (id) => {
+        const targetId = id || interviewId
+        if (!targetId) return null
         setLoading(true)
         let response = null
         try {
-            response = await getInterviewReportById(interviewId)
-            setReport(response?.interviewReport)
+            response = await getInterviewReportById(targetId)
+            if (response?.interviewReport) {
+                setReport(response.interviewReport)
+            }
         } catch (error) {
-            console.log(error)
+            console.error("Error fetching interview report:", error)
         } finally {
             setLoading(false)
         }
@@ -51,9 +55,11 @@ export const useInterview = () => {
         let response = null
         try {
             response = await getAllInterviewReports()
-            setReports(response?.interviewReports || [])
+            if (response?.interviewReports) {
+                setReports(response.interviewReports)
+            }
         } catch (error) {
-            console.log(error)
+            console.error("Error fetching all reports:", error)
         } finally {
             setLoading(false)
         }
@@ -74,7 +80,7 @@ export const useInterview = () => {
             link.click()
         }
         catch (error) {
-            console.log(error)
+            console.error("Error generating resume PDF:", error)
         } finally {
             setLoading(false)
         }
@@ -82,7 +88,9 @@ export const useInterview = () => {
 
     useEffect(() => {
         if (interviewId) {
-            getReportById(interviewId)
+            if (!report || report._id !== interviewId) {
+                getReportById(interviewId)
+            }
         } else {
             getReports()
         }

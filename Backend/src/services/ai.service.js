@@ -84,9 +84,9 @@ const interviewReportSchema = z.object({
             "The main focus of this day in the preparation plan, e.g. data structures, system design, mock interviews etc.",
           ),
         tasks: z
-          .string()
+          .array(z.string())
           .describe(
-            "List of tasks to be done on this day to follow the preparation plan, e.g. read a specific book, etc",
+            "List of tasks to be done on this day to follow the preparation plan, e.g. read a specific book, solve practice problems, etc.",
           ),
       }),
     )
