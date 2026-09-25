@@ -6,29 +6,56 @@ const interviewReportModel = require("../models/interviewReport.model");
  * @description Controller to generate interview report based on user self description, resume and job description
  */
 async function generateInterviewReportController(req, res) {
-  const resumeContent = await new pdfParse.PDFParse(
-    Uint8Array.from(req.file.buffer),
-  ).getText();
-  const { selfDescription, jobDescription } = req.body;
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({
+        message: "Resume file (PDF) is required to generate interview report",
+      });
+    }
 
-  const interviewReportByAi = await generateInterviewReport({
-    resume: resumeContent.text,
-    selfDescription,
-    jobDescription,
-  });
+    const resumeContent = await new pdfParse.PDFParse(
+      Uint8Array.from(req.file.buffer),
+    ).getText();
+    const { selfDescription = "", jobDescription = "" } = req.body;
 
-  const interviewReport = await interviewReportModel.create({
-    user: req.user.id,
-    resume: resumeContent.text,
-    selfDescription,
-    jobDescription,
-    ...interviewReportByAi,
-  });
+    const interviewReportByAi = await generateInterviewReport({
+      resume: resumeContent.text,
+      selfDescription,
+      jobDescription,
+    });
 
-  res.status(201).json({
-    message: "Interview report generated successfully",
-    interviewReport,
-  });
+    // Ensure title is guaranteed even if AI response omits it
+    let title = interviewReportByAi?.title;
+    if (!title || typeof title !== "string" || !title.trim()) {
+      const cleanFirstLine = (jobDescription || "")
+        .split("\n")[0]
+        .replace(/[^a-zA-Z0-9\s-]/g, "")
+        .trim();
+      title =
+        cleanFirstLine.length >= 3 && cleanFirstLine.length <= 60
+          ? cleanFirstLine
+          : "Custom Target Role Strategy";
+    }
+
+    const interviewReport = await interviewReportModel.create({
+      user: req.user.id,
+      resume: resumeContent.text,
+      selfDescription,
+      jobDescription,
+      ...interviewReportByAi,
+      title: title.trim(),
+    });
+
+    res.status(201).json({
+      message: "Interview report generated successfully",
+      interviewReport,
+    });
+  } catch (error) {
+    console.error("Error in generateInterviewReportController:", error);
+    res.status(500).json({
+      message: error.message || "Failed to generate interview report",
+    });
+  }
 }
 
 /**

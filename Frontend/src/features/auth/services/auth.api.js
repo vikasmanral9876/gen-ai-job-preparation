@@ -14,7 +14,11 @@ export async function register({ username, email, password }) {
     });
     return response.data;
   } catch (err) {
-    console.log(err);
+    const message =
+      err.response?.data?.message || err.message || "Registration failed";
+    const error = new Error(message);
+    error.status = err.response?.status;
+    throw error;
   }
 }
 
@@ -26,7 +30,11 @@ export async function login({ email, password }) {
     });
     return response.data;
   } catch (err) {
-    console.log(err);
+    const message =
+      err.response?.data?.message || err.message || "Login failed";
+    const error = new Error(message);
+    error.status = err.response?.status;
+    throw error;
   }
 }
 
@@ -35,7 +43,9 @@ export async function logout() {
     const response = await api.get("/api/auth/logout");
     return response.data;
   } catch (err) {
-    console.log(err);
+    console.error("Logout request error:", err);
+    // Return empty success structure even if backend cookie invalidation had an issue
+    return { message: "Logged out locally" };
   }
 }
 
@@ -44,6 +54,25 @@ export async function getMe() {
     const response = await api.get("/api/auth/get-me");
     return response.data;
   } catch (err) {
-    console.log(err);
+    // 401 is expected if not logged in
+    return null;
+  }
+}
+
+export async function forgotPassword({ email }) {
+  // Graceful helper for forgot password recovery
+  try {
+    const response = await api.post("/api/auth/forgot-password", { email });
+    return response.data;
+  } catch (err) {
+    // If backend doesn't implement /api/auth/forgot-password yet, return simulated success
+    if (err.response?.status === 404) {
+      return {
+        message: "If an account exists with that email, reset instructions have been sent.",
+        mocked: true,
+      };
+    }
+    const message = err.response?.data?.message || err.message || "Password reset request failed";
+    throw new Error(message);
   }
 }

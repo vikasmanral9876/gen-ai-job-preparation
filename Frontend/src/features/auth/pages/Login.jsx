@@ -1,57 +1,159 @@
-/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
-import "../auth.form.scss";
-import { Link, useNavigate} from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "../hooks/useAuth";
-
+import "../auth.form.scss";
+import {
+  Logo,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+  ArrowRight,
+} from "../../../components/ui/Icons";
 
 const Login = () => {
-  const { loading, handleLogin} = useAuth()
-  const navigate = useNavigate()
+  const { loading, handleLogin } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const from = location.state?.from?.pathname || "/";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await handleLogin({email, password})
-    navigate("/")
+    setErrorMessage("");
+
+    if (!email.trim() || !password) {
+      setErrorMessage("Please enter both email and password.");
+      return;
+    }
+
+    const result = await handleLogin({ email: email.trim(), password });
+    if (result.success) {
+      navigate(from, { replace: true });
+    } else {
+      setErrorMessage(result.error || "Invalid email or password.");
+    }
   };
 
-  if(loading) {
-    return (<main><h1>Loading.......</h1></main>)
-  }
-
   return (
-    <main>
-      <div className="form-container">
-        <h1>Login</h1>
-
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label htmlFor="email">Email</label>
-            <input
-              onChange={(e) => {setEmail(e.target.value)}}
-              type="email"
-              id="email"
-              name="email"
-              placeholder="Enter email address"
-            />
+    <main className="auth-page">
+      <div className="auth-card">
+        {/* Brand Header */}
+        <header className="auth-card__header">
+          <div className="brand-pill">
+            <Logo size={22} />
+            <span className="brand-name">HirePilot</span>
+            <span className="ai-badge">AI</span>
           </div>
-          <div className="input-group">
-            <label htmlFor="password">Password</label>
-            <input
-              onChange={(e) => {setPassword(e.target.value)}}
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Enter password"
-            />
+          <h1>Welcome back</h1>
+          <p>Sign in to your account to continue your interview preparation</p>
+        </header>
+
+        {/* Error Alert */}
+        {errorMessage && (
+          <div className="auth-card__alert auth-card__alert--error">
+            <AlertCircle size={18} />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} noValidate>
+          {/* Email Input */}
+          <div className="input-field">
+            <div className="input-field__header">
+              <label htmlFor="email">Email address</label>
+            </div>
+            <div className="input-field__control">
+              <span className="input-icon">
+                <Mail size={18} />
+              </span>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                autoFocus
+                placeholder="name@company.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errorMessage) setErrorMessage("");
+                }}
+                disabled={loading}
+              />
+            </div>
           </div>
 
-          <button className="button primary-button">Login</button>
+          {/* Password Input */}
+          <div className="input-field">
+            <div className="input-field__header">
+              <label htmlFor="password">Password</label>
+              <Link to="/forgot-password" className="forgot-link">
+                Forgot password?
+              </Link>
+            </div>
+            <div className="input-field__control">
+              <span className="input-icon">
+                <Lock size={18} />
+              </span>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errorMessage) setErrorMessage("");
+                }}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPassword((prev) => !prev)}
+                title={showPassword ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className="auth-submit-btn"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 size={18} />
+                <span>Signing in...</span>
+              </>
+            ) : (
+              <>
+                <span>Sign in</span>
+                <ArrowRight size={16} />
+              </>
+            )}
+          </button>
         </form>
-        <p>Don't have an account? <Link to={"/register"}>Register</Link></p>
+
+        {/* Footer */}
+        <footer className="auth-card__footer">
+          Don't have an account?{" "}
+          <Link to="/register">Create an account</Link>
+        </footer>
       </div>
     </main>
   );

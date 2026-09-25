@@ -1,0 +1,582 @@
+@use "../../style/variables" as *;
+
+.saas-shell {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  background-color: $bg-page;
+  color: $text-primary;
+  overflow: hidden;
+  position: relative;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+.saas-sidebar {
+  width: 256px;
+  height: 100%;
+  background-color: $bg-surface;
+  border-right: 1px solid $border-color;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+  transition: width $transition-normal, transform $transition-normal;
+  z-index: 50;
+
+  &--collapsed {
+    width: 76px;
+
+    .brand-title,
+    .brand-badge,
+    .nav-label,
+    .nav-badge,
+    .plan-card,
+    .collapse-btn__text {
+      display: none !important;
+    }
+
+    .sidebar-header {
+      justify-content: center;
+      padding: 1.25rem 0.5rem;
+    }
+
+    .nav-item {
+      justify-content: center;
+      padding: 0.75rem 0;
+    }
+
+    .sidebar-footer {
+      padding: 1rem 0.5rem;
+      align-items: center;
+    }
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: inherit;
+
+      .brand-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: $text-primary;
+      }
+
+      .brand-badge {
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 0.1rem 0.4rem;
+        background: $accent-subtle;
+        color: $accent;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+    }
+
+    .mobile-close-btn {
+      display: none;
+      background: transparent;
+      border: none;
+      color: $text-muted;
+      cursor: pointer;
+      padding: 0.25rem;
+
+      &:hover {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 1.25rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    overflow-y: auto;
+
+    .nav-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: $text-muted;
+      padding: 0.5rem 0.75rem 0.25rem;
+      margin-top: 0.5rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: $radius-md;
+      color: $text-secondary;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background-color $transition-fast, color $transition-fast;
+      position: relative;
+
+      &:hover {
+        background-color: $bg-hover;
+        color: $text-primary;
+      }
+
+      &--active {
+        background: $accent-subtle;
+        color: $accent;
+        font-weight: 600;
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 20%;
+          bottom: 20%;
+          width: 3px;
+          border-radius: 0 4px 4px 0;
+          background: $accent;
+        }
+
+        svg {
+          color: $accent;
+        }
+      }
+
+      .nav-icon {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .nav-label {
+        flex: 1;
+        white-space: nowrap;
+      }
+
+      .nav-badge {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: $radius-full;
+        background: $bg-panel;
+        color: $text-muted;
+        border: 1px solid $border-color;
+      }
+    }
+  }
+
+  .sidebar-footer {
+    padding: 1rem 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    .plan-card {
+      background: rgba(255, 45, 120, 0.05);
+      border: 1px solid rgba(255, 45, 120, 0.2);
+      border-radius: $radius-md;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      .plan-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .plan-title {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: $text-primary;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+
+          svg {
+            color: $accent;
+          }
+        }
+
+        .plan-tag {
+          font-size: 0.65rem;
+          font-weight: 700;
+          padding: 0.05rem 0.35rem;
+          border-radius: 4px;
+          background: $accent;
+          color: #ffffff;
+        }
+      }
+
+      .plan-desc {
+        font-size: 0.7rem;
+        color: $text-muted;
+        line-height: 1.4;
+      }
+    }
+
+    .collapse-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      background: transparent;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      color: $text-muted;
+      padding: 0.5rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background-color $transition-fast, color $transition-fast;
+
+      &:hover {
+        background-color: $bg-hover;
+        color: $text-primary;
+      }
+    }
+  }
+}
+
+// ── Mobile Backdrop ───────────────────────────────────────────────────────────
+.saas-backdrop {
+  display: none;
+
+  &--open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 45;
+  }
+}
+
+// ── Main Column ───────────────────────────────────────────────────────────────
+.saas-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+// ── Navbar ────────────────────────────────────────────────────────────────────
+.saas-navbar {
+  height: 64px;
+  background: rgba(15, 20, 31, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid $border-color;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 30;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .mobile-menu-btn {
+      display: none;
+      background: transparent;
+      border: none;
+      color: $text-secondary;
+      cursor: pointer;
+      padding: 0.4rem;
+      border-radius: $radius-sm;
+
+      &:hover {
+        background-color: $bg-hover;
+        color: $text-primary;
+      }
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+
+      .crumb-root {
+        color: $text-muted;
+      }
+
+      .crumb-separator {
+        color: $border-light;
+      }
+
+      .crumb-active {
+        color: $text-primary;
+        font-weight: 600;
+      }
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .engine-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.75rem;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: $radius-full;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6ee7b7;
+
+      .status-pulse {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: $color-success;
+        box-shadow: 0 0 8px $color-success;
+      }
+    }
+
+    .new-plan-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.95rem;
+      background: $accent-gradient;
+      color: #ffffff;
+      font-size: 0.825rem;
+      font-weight: 600;
+      border: none;
+      border-radius: $radius-md;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 2px 10px rgba(255, 45, 120, 0.3);
+      transition: opacity $transition-fast, transform $transition-fast;
+
+      &:hover {
+        opacity: 0.92;
+        transform: translateY(-1px);
+      }
+    }
+  }
+}
+
+// ── User Dropdown ─────────────────────────────────────────────────────────────
+.user-dropdown {
+  position: relative;
+
+  &__trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: transparent;
+    border: 1px solid $border-color;
+    border-radius: $radius-full;
+    padding: 0.3rem 0.6rem 0.3rem 0.3rem;
+    cursor: pointer;
+    transition: border-color $transition-fast, background-color $transition-fast;
+
+    &:hover {
+      border-color: $border-light;
+      background-color: $bg-hover;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, $accent, #3b82f6);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+    }
+
+    .username {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: $text-primary;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chevron {
+      color: $text-muted;
+      transition: transform $transition-fast;
+
+      &--open {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  &__menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 240px;
+    background: rgba(20, 27, 39, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid $border-color;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    z-index: 100;
+    animation: fadeIn 0.15s ease-out;
+
+    .menu-header {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      margin-bottom: 0.25rem;
+
+      .menu-user-name {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: $text-primary;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .menu-user-email {
+        font-size: 0.75rem;
+        color: $text-muted;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: $radius-sm;
+      font-size: 0.825rem;
+      font-weight: 500;
+      color: $text-secondary;
+      text-decoration: none;
+      background: transparent;
+      border: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color $transition-fast, color $transition-fast;
+
+      &:hover {
+        background-color: $bg-hover;
+        color: $text-primary;
+      }
+
+      &--danger {
+        color: #f87171;
+
+        &:hover {
+          background-color: rgba(239, 68, 68, 0.12);
+          color: #fca5a5;
+        }
+      }
+    }
+
+    .menu-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      margin: 0.25rem 0;
+    }
+  }
+}
+
+// ── Content Area ──────────────────────────────────────────────────────────────
+.saas-content {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+}
+
+// ── Mobile Responsive Breakpoints ─────────────────────────────────────────────
+@media (max-width: 1024px) {
+  .saas-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+
+    &--mobile-open {
+      transform: translateX(0);
+    }
+
+    .sidebar-header .mobile-close-btn {
+      display: block;
+    }
+
+    .collapse-btn {
+      display: none;
+    }
+  }
+
+  .saas-navbar__left .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .saas-navbar {
+    padding: 0 1rem;
+
+    .breadcrumbs {
+      display: none;
+    }
+
+    .engine-pill {
+      display: none;
+    }
+
+    .user-dropdown__trigger .username {
+      display: none;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

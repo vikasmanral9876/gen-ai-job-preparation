@@ -1,0 +1,146 @@
+import React, { useState } from "react";
+import { Link } from "react-router";
+import {
+  FileText,
+  Search,
+  Calendar,
+  ExternalLink,
+  Download,
+  Plus,
+  Loader2,
+} from "../../../components/ui/Icons";
+
+const RecentInterviews = ({ reports = [], onDownloadResume, isDownloading }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredReports = reports.filter((item) =>
+    (item.title || "Untitled Position")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase().trim())
+  );
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "Recently";
+    try {
+      const d = new Date(dateString);
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(d);
+    } catch (e) {
+      return "Recently";
+    }
+  };
+
+  const getScoreClass = (score) => {
+    if (score >= 80) return "score-pill--high";
+    if (score >= 60) return "score-pill--mid";
+    return "score-pill--low";
+  };
+
+  return (
+    <div className="dash-card recent-interviews">
+      <div className="dash-card__header">
+        <div className="header-title-group">
+          <h2>Recent Interview Plans</h2>
+          <span className="count-badge">{reports.length}</span>
+        </div>
+        <Link to="/interview/history" className="header-action">
+          <span>View All History &rarr;</span>
+        </Link>
+      </div>
+
+      <div className="dash-card__body">
+        {/* Search Bar if reports exist */}
+        {reports.length > 0 && (
+          <div className="search-bar">
+            <span className="search-icon">
+              <Search size={16} />
+            </span>
+            <input
+              type="text"
+              placeholder="Search by role or company..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* List of reports */}
+        {filteredReports.length > 0 ? (
+          <div className="interview-list">
+            {filteredReports.map((report) => (
+              <div key={report._id} className="interview-row">
+                <div className="interview-row__info">
+                  <h3 className="title">{report.title || "Target Position Plan"}</h3>
+                  <div className="meta">
+                    <span className="date">
+                      <Calendar size={13} />
+                      {formatDate(report.createdAt)}
+                    </span>
+                    <span>•</span>
+                    <span>Role ID: #{report._id.substring(report._id.length - 6)}</span>
+                  </div>
+                </div>
+
+                <div className="interview-row__actions">
+                  <div className={`score-pill ${getScoreClass(report.matchScore)}`}>
+                    <span>{report.matchScore ?? 0}%</span>
+                    <span style={{ fontSize: "0.68rem", opacity: 0.85 }}>match</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="action-btn"
+                    onClick={() => onDownloadResume(report._id)}
+                    title="Download Tailored ATS Resume PDF"
+                    disabled={isDownloading}
+                  >
+                    <Download size={14} />
+                    <span>Resume</span>
+                  </button>
+
+                  <Link
+                    to={`/interview/${report._id}`}
+                    className="action-btn action-btn--primary"
+                    title="Open Detailed Strategy & Road Map"
+                  >
+                    <span>View Plan</span>
+                    <ExternalLink size={14} />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : reports.length > 0 ? (
+          // Search returned 0 matches
+          <div className="dash-empty-state">
+            <div className="dash-empty-state__icon">
+              <Search size={22} />
+            </div>
+            <h3>No matching plans found</h3>
+            <p>No interview plans match "{searchTerm}". Try a different search query.</p>
+          </div>
+        ) : (
+          // Total 0 reports empty state
+          <div className="dash-empty-state">
+            <div className="dash-empty-state__icon">
+              <FileText size={24} />
+            </div>
+            <h3>No interview plans created yet</h3>
+            <p>
+              Paste any job description and upload your resume to generate a complete technical & behavioral interview roadmap.
+            </p>
+            <Link to="/create" className="empty-cta-btn">
+              <Plus size={16} />
+              <span>Create Your First Plan</span>
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default RecentInterviews;

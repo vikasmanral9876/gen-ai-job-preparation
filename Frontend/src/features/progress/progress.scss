@@ -1,0 +1,582 @@
+@use "../../style/variables" as *;
+
+.progress-page {
+  padding: 1.75rem 2rem 3.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.3s ease-out;
+
+  @media (max-width: 768px) {
+    padding: 1.25rem 1rem 2.5rem;
+    gap: 1.25rem;
+  }
+}
+
+// -------------------------------------------------------------
+// PROGRESS HEADER BANNER
+// -------------------------------------------------------------
+.progress-header {
+  background: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $radius-xl;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: $accent-gradient;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+  }
+
+  &__left {
+    max-width: 680px;
+
+    .progress-header__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      background: $accent-subtle;
+      border: 1px solid rgba(255, 45, 120, 0.25);
+      border-radius: $radius-full;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: $accent;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: $text-primary;
+      margin: 0 0 0.5rem 0;
+    }
+
+    p {
+      font-size: 0.875rem;
+      color: $text-secondary;
+      line-height: 1.5;
+      margin: 0;
+    }
+  }
+
+  &__selector {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 220px;
+
+    @media (max-width: 768px) {
+      width: 100%;
+    }
+
+    label {
+      font-size: 0.75rem;
+      color: $text-muted;
+      font-weight: 500;
+    }
+
+    select {
+      background: $bg-page;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      color: $text-primary;
+      outline: none;
+      transition: border-color $transition-fast;
+
+      &:focus {
+        border-color: $accent;
+      }
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// OVERALL PREPARATION HERO METRIC
+// -------------------------------------------------------------
+.prep-score-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 1.5rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.prep-gauge-card {
+  background: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $radius-xl;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+
+  &__circle-wrapper {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+
+    svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+
+      circle {
+        fill: none;
+        stroke-width: 12;
+
+        &.bg {
+          stroke: #141b27;
+        }
+
+        &.progress {
+          stroke: $accent;
+          stroke-linecap: round;
+          transition: stroke-dashoffset 1s ease-in-out;
+        }
+      }
+    }
+
+    .gauge-value {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      .number {
+        font-size: 2.75rem;
+        font-weight: 700;
+        color: #ffffff;
+        line-height: 1;
+      }
+
+      .unit {
+        font-size: 0.75rem;
+        color: $accent;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
+    }
+  }
+
+  h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0 0 0.25rem 0;
+  }
+
+  p {
+    font-size: 0.75rem;
+    color: $text-muted;
+    max-width: 240px;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  &__status-pill {
+    margin-top: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: $radius-full;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    &--high {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    &--medium {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    &--low {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    &--empty {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid $border-color;
+      color: $text-muted;
+    }
+  }
+}
+
+.prep-pillars-card {
+  background: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $radius-xl;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+
+  &__title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: $text-primary;
+      margin: 0;
+    }
+
+    span {
+      font-size: 0.75rem;
+      color: $text-muted;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.pillar-item {
+  background: rgba(10, 13, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: $radius-lg;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .name-col {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      svg {
+        color: $accent;
+      }
+
+      span {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: $text-primary;
+      }
+    }
+
+    .score-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: $accent;
+    }
+  }
+
+  &__bar {
+    width: 100%;
+    height: 8px;
+    background: #141b27;
+    border-radius: $radius-full;
+    overflow: hidden;
+
+    .fill {
+      height: 100%;
+      border-radius: $radius-full;
+      background: $accent-gradient;
+      transition: width 0.8s ease-in-out;
+    }
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: $text-muted;
+    display: flex;
+    justify-content: space-between;
+  }
+}
+
+// -------------------------------------------------------------
+// PERFORMANCE METRIC CARDS (TECHNICAL, BEHAVIORAL, COMMUNICATION)
+// -------------------------------------------------------------
+.metrics-tri-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metric-box {
+  background: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all $transition-normal;
+
+  &:hover {
+    border-color: $border-light;
+    transform: translateY(-2px);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: $text-primary;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+
+      svg {
+        color: $accent;
+      }
+    }
+
+    .count-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      background: $accent-subtle;
+      border-radius: $radius-sm;
+      color: $accent;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+
+    .key {
+      color: $text-muted;
+    }
+
+    .val {
+      color: $text-primary;
+      font-weight: 600;
+    }
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 0.5rem;
+
+    .gap-tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: $radius-full;
+
+      &--high {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+      }
+
+      &--medium {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+      }
+
+      &--low {
+        background: rgba(16, 185, 129, 0.12);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+      }
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// RECENT ACTIVITY TIMELINE
+// -------------------------------------------------------------
+.activity-card {
+  background: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $radius-xl;
+  padding: 1.5rem;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: $text-primary;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+
+      svg {
+        color: $accent;
+      }
+    }
+
+    span {
+      font-size: 0.75rem;
+      color: $text-muted;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(10, 13, 20, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: $radius-md;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba(20, 27, 39, 0.8);
+    border-color: rgba(255, 45, 120, 0.2);
+  }
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $accent-subtle;
+    color: $accent;
+    flex-shrink: 0;
+  }
+
+  &__message {
+    font-size: 0.75rem;
+    color: $text-primary;
+    font-weight: 500;
+  }
+
+  &__time {
+    font-size: 11px;
+    color: $text-muted;
+    white-space: nowrap;
+  }
+}
+
+// -------------------------------------------------------------
+// MEANINGFUL EMPTY STATE
+// -------------------------------------------------------------
+.progress-empty-state {
+  background: $bg-card;
+  border: 1px dashed $border-color;
+  border-radius: $radius-xl;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+
+  &__icon {
+    width: 64px;
+    height: 64px;
+    border-radius: $radius-lg;
+    background: $accent-subtle;
+    border: 1px solid rgba(255, 45, 120, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $accent;
+  }
+
+  h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: $text-primary;
+    margin: 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: $text-muted;
+    max-width: 480px;
+    margin: 0;
+    line-height: 1.5;
+  }
+}
