@@ -30,9 +30,15 @@
     .brand-badge,
     .nav-label,
     .nav-badge,
+    .nav-section-title,
     .plan-card,
     .collapse-btn__text {
       display: none !important;
+    }
+
+    .nav-divider {
+      margin: 0.5rem 0.25rem;
+      background: rgba(255, 255, 255, 0.08);
     }
 
     .sidebar-header {
@@ -113,7 +119,15 @@
       letter-spacing: 0.08em;
       color: $text-muted;
       padding: 0.5rem 0.75rem 0.25rem;
-      margin-top: 0.5rem;
+      margin-top: 0.25rem;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .nav-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      margin: 0.6rem 0.75rem;
     }
 
     .nav-item {

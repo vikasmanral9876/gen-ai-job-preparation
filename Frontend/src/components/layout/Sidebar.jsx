@@ -105,7 +105,8 @@ const Sidebar = ({
           <span className="nav-label">Preparation Progress</span>
         </NavLink>
 
-        <span className="nav-section-title" style={{ marginTop: "12px" }}>
+        <div className="nav-divider" />
+        <span className="nav-section-title">
           Career Assets
         </span>
 

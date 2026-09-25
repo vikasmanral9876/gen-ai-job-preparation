@@ -1,0 +1,397 @@
+@use "../../../style/variables" as *;
+
+// ── Plan Loading Screen ──────────────────────────────────────────────────────────
+.plan-loading-screen {
+  width: 100%;
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  // Ambient Lighting Glows
+  &__glow-top {
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(255, 45, 120, 0.18) 0%, transparent 70%);
+    filter: blur(65px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &__glow-bottom {
+    position: absolute;
+    bottom: 10%;
+    right: 20%;
+    width: 400px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+    filter: blur(55px);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+// ── Glassmorphic Loading Card ──────────────────────────────────────────────────
+.plan-loading-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 580px;
+  background: rgba(18, 24, 35, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 45, 120, 0.28);
+  border-radius: 24px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 0 45px rgba(255, 45, 120, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 3rem 2.25rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+  animation: cardFadeIn 0.4s ease-out;
+
+  @media (max-width: 640px) {
+    padding: 2.25rem 1.5rem 2rem;
+    gap: 1.25rem;
+  }
+}
+
+// ── Central Pulsing Orb ────────────────────────────────────────────────────────
+.plan-loading-orb-container {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+
+  .plan-loading-orb__ring-outer {
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 45, 120, 0.45);
+    animation: orbPulseRing 2.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  .plan-loading-orb__ring-inner {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(255, 112, 165, 0.55);
+    animation: orbSpinHalo 10s linear infinite;
+  }
+
+  .plan-loading-orb__core {
+    position: relative;
+    z-index: 2;
+    width: 68px;
+    height: 68px;
+    border-radius: 18px;
+    background: #141b27;
+    border: 1.5px solid rgba(255, 45, 120, 0.6);
+    box-shadow:
+      0 8px 24px rgba(255, 45, 120, 0.35),
+      inset 0 0 16px rgba(255, 45, 120, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: orbCoreBreath 3s ease-in-out infinite;
+  }
+
+  .plan-loading-orb__badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    z-index: 3;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff2d78, #ff6b9d);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(255, 45, 120, 0.6);
+    animation: badgeBounce 2s ease-in-out infinite;
+  }
+}
+
+// ── AI Engine Status Pill ──────────────────────────────────────────────────────
+.plan-loading-engine-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.95rem;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: $radius-full;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #6ee7b7;
+  letter-spacing: 0.02em;
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+    animation: liveDotPulse 1.8s infinite;
+  }
+}
+
+// ── Header Typography ──────────────────────────────────────────────────────────
+.plan-loading-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-width: 480px;
+
+  .plan-loading-title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: $text-primary;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    margin: 0;
+
+    @media (max-width: 640px) {
+      font-size: 1.25rem;
+    }
+  }
+
+  .plan-loading-subtitle {
+    font-size: 0.9rem;
+    color: $text-secondary;
+    line-height: 1.5;
+    margin: 0;
+    min-height: 2.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.25s ease;
+  }
+}
+
+// ── Multi-color Animated Progress Bar ──────────────────────────────────────────
+.plan-loading-bar-wrap {
+  width: 100%;
+  max-width: 440px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: $radius-full;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  .plan-loading-bar-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6 0%, #ff2d78 50%, #ff70a5 100%);
+    border-radius: $radius-full;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 12px rgba(255, 45, 120, 0.5);
+  }
+
+  .plan-loading-bar-shimmer {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%
+    );
+    animation: barShimmer 1.8s infinite;
+  }
+}
+
+// ── Milestone Steps ───────────────────────────────────────────────────────────
+.plan-loading-steps {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .loading-step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+
+    .step-icon-bubble {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: $text-muted;
+      transition: all 0.3s ease;
+    }
+
+    .step-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: $text-muted;
+      letter-spacing: -0.01em;
+      transition: color 0.3s ease;
+    }
+
+    // Active (Current) State
+    &--current {
+      background: rgba(255, 45, 120, 0.08);
+      border-color: rgba(255, 45, 120, 0.35);
+      box-shadow: 0 0 16px rgba(255, 45, 120, 0.15);
+
+      .step-icon-bubble {
+        background: $accent;
+        border-color: $accent;
+        color: #ffffff;
+        box-shadow: 0 0 12px rgba(255, 45, 120, 0.5);
+      }
+
+      .step-label {
+        color: $text-primary;
+        font-weight: 700;
+      }
+    }
+
+    // Completed State
+    &--completed {
+      background: rgba(16, 185, 129, 0.06);
+      border-color: rgba(16, 185, 129, 0.25);
+
+      .step-icon-bubble {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: #10b981;
+        color: #34d399;
+      }
+
+      .step-label {
+        color: #a7f3d0;
+      }
+    }
+  }
+}
+
+// ── Reassurance Footer ─────────────────────────────────────────────────────────
+.plan-loading-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: $text-muted;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 1.15rem;
+  width: 100%;
+
+  svg {
+    color: #10b981;
+    flex-shrink: 0;
+  }
+}
+
+// ── Keyframe Animations ───────────────────────────────────────────────────────
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes orbPulseRing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes orbSpinHalo {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbCoreBreath {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 24px rgba(255, 45, 120, 0.35);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 12px 32px rgba(255, 45, 120, 0.55);
+  }
+}
+
+@keyframes badgeBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes liveDotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.5;
+  }
+}
+
+@keyframes barShimmer {
+  0% {
+    left: -60%;
+  }
+  100% {
+    left: 120%;
+  }
+}

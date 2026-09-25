@@ -145,6 +145,50 @@
     }
   }
 
+  .google-auth-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+
+    .google-btn-slot {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+
+      > div {
+        width: 100% !important;
+        margin: 0 auto;
+      }
+
+      iframe {
+        margin: 0 auto !important;
+      }
+    }
+  }
+
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin: 0.25rem 0;
+
+    &__line {
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &__text {
+      font-size: 0.725rem;
+      font-weight: 500;
+      color: $text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+  }
+
   form {
     display: flex;
     flex-direction: column;

@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../auth.context";
-import { login, register, logout, getMe } from "../services/auth.api";
+import { login, register, logout, getMe, googleAuth } from "../services/auth.api";
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -32,6 +32,27 @@ export const useAuth = () => {
     }
   };
 
+  const handleGoogleLogin = async ({ idToken }) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const data = await googleAuth({ idToken });
+      if (data?.user) {
+        setUser(data.user);
+        return { success: true, user: data.user };
+      }
+      const err = "Google sign-in failed: No user returned";
+      setAuthError(err);
+      return { success: false, error: err };
+    } catch (err) {
+      const message = err.message || "Google sign-in failed";
+      setAuthError(message);
+      return { success: false, error: message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRegister = async ({ username, email, password }) => {
     setLoading(true);
     setAuthError(null);
@@ -53,14 +74,36 @@ export const useAuth = () => {
     }
   };
 
+  const updateUserData = (updatedFields) => {
+    if (updatedFields.username && user) {
+      const uId = user.id || user._id || user.email;
+      try {
+        localStorage.setItem(`hirepilot_custom_username_${uId}`, updatedFields.username);
+      } catch (e) {
+        console.error("Failed to save custom username:", e);
+      }
+    }
+    setUser((prev) => (prev ? { ...prev, ...updatedFields } : updatedFields));
+  };
+
   const handleLogout = async () => {
     setLoading(true);
     try {
       await logout();
+      try {
+        localStorage.removeItem("hirepilot_custom_username");
+      } catch (e) {
+        console.error(e);
+      }
       setUser(null);
       return { success: true };
     } catch (err) {
       console.error("Logout error:", err);
+      try {
+        localStorage.removeItem("hirepilot_custom_username");
+      } catch (e) {
+        console.error(e);
+      }
       setUser(null);
       return { success: true };
     } finally {
@@ -74,7 +117,19 @@ export const useAuth = () => {
       try {
         const data = await getMe();
         if (isMounted) {
-          setUser(data?.user || null);
+          // Clean legacy un-scoped key
+          localStorage.removeItem("hirepilot_custom_username");
+          if (data?.user) {
+            const uId = data.user.id || data.user._id || data.user.email;
+            const customName = localStorage.getItem(`hirepilot_custom_username_${uId}`);
+            const resolvedUser = {
+              ...data.user,
+              username: customName || data.user.username,
+            };
+            setUser(resolvedUser);
+          } else {
+            setUser(null);
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -101,6 +156,8 @@ export const useAuth = () => {
     setAuthError,
     handleRegister,
     handleLogin,
+    handleGoogleLogin,
     handleLogout,
+    updateUserData,
   };
 };

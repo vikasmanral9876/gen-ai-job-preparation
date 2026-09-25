@@ -38,6 +38,19 @@ export async function login({ email, password }) {
   }
 }
 
+export async function googleAuth({ idToken }) {
+  try {
+    const response = await api.post("/api/auth/google", { idToken });
+    return response.data;
+  } catch (err) {
+    const message =
+      err.response?.data?.message || err.message || "Google sign-in failed";
+    const error = new Error(message);
+    error.status = err.response?.status;
+    throw error;
+  }
+}
+
 export async function logout() {
   try {
     const response = await api.get("/api/auth/logout");

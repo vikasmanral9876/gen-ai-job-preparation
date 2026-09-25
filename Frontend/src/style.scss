@@ -179,3 +179,75 @@ button {
 .spin-icon {
   animation: spin 0.8s linear infinite;
 }
+
+// ── Theme Overrides: Cyber Cyan (1 Extra Theme) ─────────────────────────────
+[data-theme="cyan"] {
+  .highlight {
+    color: #06b6d4 !important;
+  }
+
+  .btn-primary,
+  .new-plan-btn,
+  .submit-btn,
+  .skills-container__add-form button {
+    background: linear-gradient(135deg, #06b6d4 0%, #38bdf8 100%) !important;
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3) !important;
+
+    &:hover {
+      background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%) !important;
+      box-shadow: 0 0 24px rgba(6, 182, 212, 0.45) !important;
+    }
+  }
+
+  .sidebar__link--active {
+    background: rgba(6, 182, 212, 0.12) !important;
+    color: #06b6d4 !important;
+    border-left-color: #06b6d4 !important;
+
+    svg {
+      color: #06b6d4 !important;
+    }
+  }
+
+  .settings-tabs__tab--active {
+    background: rgba(6, 182, 212, 0.12) !important;
+    color: #06b6d4 !important;
+
+    svg {
+      color: #06b6d4 !important;
+    }
+  }
+
+  .settings-header__badge,
+  .profile-hero__badge,
+  .engine-pill {
+    background: rgba(6, 182, 212, 0.12) !important;
+    border-color: rgba(6, 182, 212, 0.3) !important;
+    color: #06b6d4 !important;
+  }
+
+  .engine-pill .status-pulse {
+    background: #06b6d4 !important;
+    box-shadow: 0 0 8px #06b6d4 !important;
+  }
+
+  .resume-status-card__status-pill--active {
+    background: rgba(6, 182, 212, 0.12) !important;
+    border-color: rgba(6, 182, 212, 0.3) !important;
+    color: #06b6d4 !important;
+  }
+
+  .profile-toast {
+    background: #0f141f !important;
+    border-color: rgba(6, 182, 212, 0.4) !important;
+    color: #06b6d4 !important;
+    box-shadow: 0 8px 24px rgba(6, 182, 212, 0.25) !important;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: #06b6d4 !important;
+    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.15) !important;
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useInterview } from "../../interview/hooks/useInterview";
 import { getInterviewReportById } from "../../interview/services/interview.api";
 import "../progress.scss";
@@ -21,6 +22,8 @@ import {
 } from "../../../components/ui/Icons";
 
 const ProgressAnalytics = () => {
+  const { user } = useAuth();
+  const userId = user?.id || user?._id || user?.email || "anonymous";
   const { reports, getReports, loading } = useInterview();
 
   // Selected report for deep inspection
@@ -80,7 +83,7 @@ const ProgressAnalytics = () => {
       return;
     }
     try {
-      const stored = localStorage.getItem(`hirepilot_prep_${selectedReportId}`);
+      const stored = localStorage.getItem(`hirepilot_prep_${userId}_${selectedReportId}`);
       if (stored) {
         setCompletedTasks(JSON.parse(stored));
       } else {
@@ -90,12 +93,13 @@ const ProgressAnalytics = () => {
       console.error("Failed to load prep tasks:", e);
       setCompletedTasks([]);
     }
-  }, [selectedReportId]);
+  }, [userId, selectedReportId]);
 
-  // Load activity log
+  // Load activity log scoped to current user
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("hirepilot_activity_log");
+      localStorage.removeItem("hirepilot_activity_log");
+      const stored = localStorage.getItem(`hirepilot_activity_log_${userId}`);
       if (stored) {
         setActivityLog(JSON.parse(stored));
       } else {
@@ -105,7 +109,7 @@ const ProgressAnalytics = () => {
       console.error("Failed to load activity log:", e);
       setActivityLog([]);
     }
-  }, []);
+  }, [userId]);
 
   // Compute real metrics from the selected detailed report
   const metrics = useMemo(() => {

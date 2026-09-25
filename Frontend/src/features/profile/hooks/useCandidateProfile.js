@@ -1,52 +1,28 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../auth/hooks/useAuth";
 
-const DEFAULT_PROFILE = {
-  title: "Senior Full Stack Engineer",
-  bio: "Passionate engineer specializing in high-performance web applications, scalable distributed architectures, and AI-native products.",
-  location: "San Francisco, CA / Remote",
-  website: "https://hirepilot.ai",
+// Blank profile for brand-new users - no auto-generated or dummy profile pre-population
+const EMPTY_PROFILE = {
+  title: "",
+  bio: "",
+  location: "",
+  website: "",
   avatarUrl: null,
-  skills: [
-    "JavaScript (ES6+)",
-    "TypeScript",
-    "React / Next.js",
-    "Node.js & Express",
-    "System Design",
-    "PostgreSQL & MongoDB",
-    "REST & GraphQL APIs",
-    "Docker & CI/CD",
-  ],
-  experience: [
-    {
-      id: "exp_1",
-      role: "Senior Full Stack Engineer",
-      company: "CloudScale Systems",
-      period: "2023 - Present",
-      location: "San Francisco, CA (Remote)",
-      description:
-        "Led architecture for AI-assisted workflow engines and interactive candidate preparation pipelines with 99.9% reliability.",
-    },
-    {
-      id: "exp_2",
-      role: "Software Engineer",
-      company: "DataVibe Technologies",
-      period: "2021 - 2023",
-      location: "Austin, TX",
-      description:
-        "Engineered real-time dashboard analytics, high-throughput microservices, and modern UI components used by 100k+ active candidates.",
-    },
-  ],
-  education: [
-    {
-      id: "edu_1",
-      institution: "State University of Science & Technology",
-      degree: "B.S. in Computer Science",
-      period: "2017 - 2021",
-      description:
-        "Graduated Magna Cum Laude. Specialization in Software Systems, Data Structures, and Human-Computer Interaction.",
-    },
-  ],
+  skills: [],
+  experience: [],
+  education: [],
+};
+
+// Helper to detect if a stored profile contains the legacy dummy template
+const isDummyTemplate = (p) => {
+  if (!p) return false;
+  const hasDummyExp = p.experience?.some(
+    (e) => e.company === "CloudScale Systems" || e.company === "DataVibe Technologies"
+  );
+  const hasDummyEdu = p.education?.some(
+    (e) => e.institution === "State University of Science & Technology"
+  );
+  return Boolean(hasDummyExp || hasDummyEdu);
 };
 
 export const useCandidateProfile = () => {
@@ -58,12 +34,17 @@ export const useCandidateProfile = () => {
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (!isDummyTemplate(parsed)) {
+          return { ...EMPTY_PROFILE, ...parsed };
+        }
+        // Purge legacy dummy template so new user starts completely fresh
+        localStorage.removeItem(storageKey);
       }
     } catch (e) {
       console.error("Failed to load profile from localStorage:", e);
     }
-    return DEFAULT_PROFILE;
+    return EMPTY_PROFILE;
   });
 
   // Sync if userId changes
@@ -71,12 +52,17 @@ export const useCandidateProfile = () => {
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
-        setProfile(JSON.parse(stored));
-      } else {
-        setProfile(DEFAULT_PROFILE);
+        const parsed = JSON.parse(stored);
+        if (!isDummyTemplate(parsed)) {
+          setProfile({ ...EMPTY_PROFILE, ...parsed });
+          return;
+        }
+        localStorage.removeItem(storageKey);
       }
+      setProfile(EMPTY_PROFILE);
     } catch (e) {
       console.error("Failed to load profile on user change:", e);
+      setProfile(EMPTY_PROFILE);
     }
   }, [storageKey]);
 
@@ -112,10 +98,11 @@ export const useCandidateProfile = () => {
       const trimmed = skill.trim();
       if (!trimmed) return;
       setProfile((prev) => {
-        if (prev.skills.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
+        const skillsList = prev.skills || [];
+        if (skillsList.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
           return prev;
         }
-        const updated = { ...prev, skills: [...prev.skills, trimmed] };
+        const updated = { ...prev, skills: [...skillsList, trimmed] };
         try {
           localStorage.setItem(storageKey, JSON.stringify(updated));
         } catch (e) {
@@ -130,9 +117,10 @@ export const useCandidateProfile = () => {
   const removeSkill = useCallback(
     (skillToRemove) => {
       setProfile((prev) => {
+        const skillsList = prev.skills || [];
         const updated = {
           ...prev,
-          skills: prev.skills.filter((s) => s !== skillToRemove),
+          skills: skillsList.filter((s) => s !== skillToRemove),
         };
         try {
           localStorage.setItem(storageKey, JSON.stringify(updated));
@@ -148,11 +136,12 @@ export const useCandidateProfile = () => {
   const addExperience = useCallback(
     (exp) => {
       setProfile((prev) => {
+        const expList = prev.experience || [];
         const newExp = {
           ...exp,
           id: `exp_${Date.now()}`,
         };
-        const updated = { ...prev, experience: [newExp, ...prev.experience] };
+        const updated = { ...prev, experience: [newExp, ...expList] };
         try {
           localStorage.setItem(storageKey, JSON.stringify(updated));
         } catch (e) {
@@ -167,9 +156,10 @@ export const useCandidateProfile = () => {
   const updateExperience = useCallback(
     (id, updatedFields) => {
       setProfile((prev) => {
+        const expList = prev.experience || [];
         const updated = {
           ...prev,
-          experience: prev.experience.map((item) =>
+          experience: expList.map((item) =>
             item.id === id ? { ...item, ...updatedFields } : item
           ),
         };
@@ -187,9 +177,10 @@ export const useCandidateProfile = () => {
   const deleteExperience = useCallback(
     (id) => {
       setProfile((prev) => {
+        const expList = prev.experience || [];
         const updated = {
           ...prev,
-          experience: prev.experience.filter((item) => item.id !== id),
+          experience: expList.filter((item) => item.id !== id),
         };
         try {
           localStorage.setItem(storageKey, JSON.stringify(updated));
@@ -205,11 +196,12 @@ export const useCandidateProfile = () => {
   const addEducation = useCallback(
     (edu) => {
       setProfile((prev) => {
+        const eduList = prev.education || [];
         const newEdu = {
           ...edu,
           id: `edu_${Date.now()}`,
         };
-        const updated = { ...prev, education: [newEdu, ...prev.education] };
+        const updated = { ...prev, education: [newEdu, ...eduList] };
         try {
           localStorage.setItem(storageKey, JSON.stringify(updated));
         } catch (e) {
@@ -224,9 +216,10 @@ export const useCandidateProfile = () => {
   const updateEducation = useCallback(
     (id, updatedFields) => {
       setProfile((prev) => {
+        const eduList = prev.education || [];
         const updated = {
           ...prev,
-          education: prev.education.map((item) =>
+          education: eduList.map((item) =>
             item.id === id ? { ...item, ...updatedFields } : item
           ),
         };
@@ -244,9 +237,10 @@ export const useCandidateProfile = () => {
   const deleteEducation = useCallback(
     (id) => {
       setProfile((prev) => {
+        const eduList = prev.education || [];
         const updated = {
           ...prev,
-          education: prev.education.filter((item) => item.id !== id),
+          education: eduList.filter((item) => item.id !== id),
         };
         try {
           localStorage.setItem(storageKey, JSON.stringify(updated));

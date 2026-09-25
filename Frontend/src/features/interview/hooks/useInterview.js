@@ -94,6 +94,12 @@ export const useInterview = () => {
             }
             try {
                 localStorage.removeItem(`hirepilot_prep_${targetId}`);
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith("hirepilot_prep_") && key.endsWith(targetId)) {
+                        localStorage.removeItem(key);
+                    }
+                }
             } catch (e) {
                 console.error("Failed to clear prep checklist:", e);
             }

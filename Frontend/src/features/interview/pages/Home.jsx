@@ -3,6 +3,7 @@ import "../style/home.scss";
 import { useInterview } from "../hooks/useInterview.js";
 import { useNavigate } from "react-router";
 import { AlertCircle } from "../../../components/ui/Icons";
+import PlanLoadingState from "../components/PlanLoadingState";
 
 const Home = () => {
   const { loading, generateReport, reports } = useInterview();
@@ -91,9 +92,9 @@ const Home = () => {
 
   if (loading) {
     return (
-      <main className="loading-screen">
-        <h1>Loading your interview plan...</h1>
-      </main>
+      <PlanLoadingState
+        title="Generating Your Custom Interview Plan"
+      />
     );
   }
 

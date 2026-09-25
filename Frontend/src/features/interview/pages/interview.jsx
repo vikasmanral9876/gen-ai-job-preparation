@@ -3,6 +3,7 @@ import "../style/interview.scss";
 import { useInterview } from "../hooks/useInterview.js";
 import { useParams, useNavigate } from "react-router";
 import { Trash2 } from "../../../components/ui/Icons";
+import PlanLoadingState from "../components/PlanLoadingState";
 
 
 const NAV_ITEMS = [
@@ -162,17 +163,10 @@ const Interview = () => {
 
   if (loading) {
     return (
-      <main
-        className="loading-screen"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "80vh",
-        }}
-      >
-        <h1>Loading your interview plan...</h1>
-      </main>
+      <PlanLoadingState
+        title="Loading Your Interview Plan"
+        subtitle="Retrieving tailored question blueprints, evaluation criteria & preparation roadmap..."
+      />
     );
   }
 

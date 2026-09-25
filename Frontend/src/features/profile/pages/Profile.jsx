@@ -187,7 +187,9 @@ const Profile = () => {
                   AI Verified Candidate
                 </span>
               </div>
-              <p className="profile-hero__title">{profile.title}</p>
+              <p className="profile-hero__title" style={{ opacity: profile.title ? 1 : 0.65 }}>
+                {profile.title || "Target Role Not Specified"}
+              </p>
               <div className="profile-hero__meta">
                 <span>
                   <Mail size={14} />
@@ -323,19 +325,25 @@ const Profile = () => {
 
             <div className="skills-container">
               <div className="skills-container__tags">
-                {profile.skills.map((skill) => (
-                  <span key={skill} className="skills-container__tag">
-                    <span>{skill}</span>
-                    <button
-                      type="button"
-                      className="remove-btn"
-                      onClick={() => handleRemoveSkill(skill)}
-                      title={`Remove ${skill}`}
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
+                {(!profile.skills || profile.skills.length === 0) ? (
+                  <p style={{ fontSize: "12px", color: "#6b7280", fontStyle: "italic", margin: "4px 0" }}>
+                    No skills added yet. Add your key technical and professional skills below.
+                  </p>
+                ) : (
+                  profile.skills.map((skill) => (
+                    <span key={skill} className="skills-container__tag">
+                      <span>{skill}</span>
+                      <button
+                        type="button"
+                        className="remove-btn"
+                        onClick={() => handleRemoveSkill(skill)}
+                        title={`Remove ${skill}`}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))
+                )}
               </div>
 
               <form className="skills-container__add-form" onSubmit={handleAddSkill}>

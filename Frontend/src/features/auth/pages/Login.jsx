@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import "../auth.form.scss";
@@ -14,9 +14,10 @@ import {
 } from "../../../components/ui/Icons";
 
 const Login = () => {
-  const { loading, handleLogin } = useAuth();
+  const { loading, handleLogin, handleGoogleLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const googleBtnRef = useRef(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +25,62 @@ const Login = () => {
   const [errorMessage, setErrorMessage] = useState("");
 
   const from = location.state?.from?.pathname || "/";
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  // Initialize Google Identity Services
+  useEffect(() => {
+    if (!clientId) {
+      console.warn("VITE_GOOGLE_CLIENT_ID is not configured in environment variables.");
+      return;
+    }
+
+    const renderGoogleButton = () => {
+      if (window.google?.accounts?.id && googleBtnRef.current) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (response) => {
+              if (response?.credential) {
+                setErrorMessage("");
+                const result = await handleGoogleLogin({ idToken: response.credential });
+                if (result.success) {
+                  navigate(from, { replace: true });
+                } else {
+                  setErrorMessage(result.error || "Google sign-in failed.");
+                }
+              }
+            },
+          });
+
+          // Render official Google button
+          googleBtnRef.current.innerHTML = "";
+          window.google.accounts.id.renderButton(googleBtnRef.current, {
+            theme: "filled_black",
+            size: "large",
+            type: "standard",
+            shape: "rectangular",
+            text: "continue_with",
+            logo_alignment: "left",
+            width: googleBtnRef.current.offsetWidth || 376,
+          });
+        } catch (err) {
+          console.error("Error initializing Google Identity Services:", err);
+        }
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+    } else {
+      const timer = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(timer);
+          renderGoogleButton();
+        }
+      }, 100);
+      return () => clearInterval(timer);
+    }
+  }, [clientId, handleGoogleLogin, navigate, from]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,6 +120,18 @@ const Login = () => {
             <span>{errorMessage}</span>
           </div>
         )}
+
+        {/* Google Authentication */}
+        <div className="google-auth-container">
+          <div ref={googleBtnRef} className="google-btn-slot" />
+        </div>
+
+        {/* Divider */}
+        <div className="auth-divider">
+          <span className="auth-divider__line" />
+          <span className="auth-divider__text">or continue with email</span>
+          <span className="auth-divider__line" />
+        </div>
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} noValidate>

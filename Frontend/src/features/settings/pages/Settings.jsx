@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { useCandidateProfile } from "../../profile/hooks/useCandidateProfile";
 import "../settings.scss";
 import {
   Settings as SettingsIcon,
   User as UserIcon,
-  Bell,
   Moon,
-  ShieldCheck,
-  Key,
   LogOut,
   Save,
   CheckCircle2,
   AlertCircle,
-  Eye,
-  EyeOff,
   Check,
+  Lock,
+  Sparkles,
 } from "../../../components/ui/Icons";
 
 const Settings = () => {
-  const { user, handleLogout } = useAuth();
+  const { user, updateUserData, handleLogout } = useAuth();
+  const { profile, updateProfileFields } = useCandidateProfile();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState("account"); // 'account' | 'notifications' | 'appearance' | 'security' | 'password' | 'logout'
+  const [activeTab, setActiveTab] = useState("account"); // 'account' | 'appearance' | 'logout'
   const [toastMessage, setToastMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -37,125 +36,88 @@ const Settings = () => {
     setTimeout(() => setErrorMessage(""), 4000);
   };
 
-  // Account State
+  const userId = user?.id || user?._id || user?.email || "anonymous";
+
+  // Account form state
   const [accountForm, setAccountForm] = useState({
     username: user?.username || "Candidate",
     email: user?.email || "candidate@hirepilot.ai",
-    preferredRole: "Senior Full Stack Engineer",
+    preferredRole: profile?.title || "",
+    location: profile?.location || "",
     timezone: "UTC-08:00 (Pacific Time - Los Angeles)",
   });
 
-  // Notification State
-  const [notifications, setNotifications] = useState(() => {
+  // Sync state if user or profile updates
+  useEffect(() => {
+    const savedTimezone =
+      localStorage.getItem(`hirepilot_timezone_${userId}`) ||
+      localStorage.getItem("hirepilot_timezone");
+    setAccountForm((prev) => ({
+      ...prev,
+      username: user?.username || prev.username,
+      email: user?.email || prev.email,
+      preferredRole: profile?.title || "",
+      location: profile?.location || "",
+      timezone: savedTimezone || prev.timezone,
+    }));
+  }, [user, profile, userId]);
+
+  // Appearance state (Only 2 themes: Default Neon & Cyber Cyan)
+  const [selectedTheme, setSelectedTheme] = useState(() => {
     try {
-      const stored = localStorage.getItem("hirepilot_settings_notifications");
-      if (stored) return JSON.parse(stored);
+      return localStorage.getItem("hirepilot_theme") || "neon";
     } catch (e) {
       console.error(e);
+      return "neon";
     }
-    return {
-      roadmapReminders: true,
-      planCompletion: true,
-      weeklyDigest: false,
-      productUpdates: true,
-    };
   });
 
-  // Appearance State
-  const [appearance, setAppearance] = useState(() => {
-    try {
-      const stored = localStorage.getItem("hirepilot_settings_appearance");
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.error(e);
-    }
-    return {
-      theme: "dark",
-      accentColor: "#ff2d78",
-      density: "comfortable",
-    };
-  });
-
-  // Security State
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-
-  // Password Form State
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false,
-  });
-
-  // Save account settings
+  // Save account changes
   const handleSaveAccount = (e) => {
     e.preventDefault();
+    if (!accountForm.username.trim()) {
+      showError("Please enter a valid display name.");
+      return;
+    }
+
     try {
-      localStorage.setItem("hirepilot_settings_account", JSON.stringify(accountForm));
+      // 1. Update user display name in auth context & storage
+      if (updateUserData) {
+        updateUserData({ username: accountForm.username.trim() });
+      }
+
+      // 2. Sync title & location to candidate profile
+      if (updateProfileFields) {
+        updateProfileFields({
+          title: accountForm.preferredRole.trim(),
+          location: accountForm.location.trim(),
+        });
+      }
+
+      // 3. Save timezone
+      localStorage.setItem(`hirepilot_timezone_${userId}`, accountForm.timezone);
+
       showToast("Account preferences updated successfully");
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+      showError("Failed to save account changes. Please try again.");
+    }
+  };
+
+  // Switch Theme (Works immediately on document root and persists)
+  const handleThemeChange = (themeKey) => {
+    setSelectedTheme(themeKey);
+    try {
+      localStorage.setItem("hirepilot_theme", themeKey);
+      document.documentElement.setAttribute("data-theme", themeKey);
+      const name = themeKey === "cyan" ? "Cyber Cyan" : "HirePilot Neon";
+      showToast(`${name} theme applied`);
     } catch (e) {
-      showError("Failed to save account settings");
+      console.error("Failed to apply theme:", e);
     }
   };
 
-  // Save notification toggle
-  const handleToggleNotification = (key) => {
-    setNotifications((prev) => {
-      const updated = { ...prev, [key]: !prev[key] };
-      try {
-        localStorage.setItem("hirepilot_settings_notifications", JSON.stringify(updated));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
-    showToast("Notification preferences updated");
-  };
-
-  // Save appearance change
-  const handleUpdateAppearance = (field, val) => {
-    setAppearance((prev) => {
-      const updated = { ...prev, [field]: val };
-      try {
-        localStorage.setItem("hirepilot_settings_appearance", JSON.stringify(updated));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
-    showToast(`Appearance updated: ${val}`);
-  };
-
-  // Handle password submit
-  const handleChangePassword = (e) => {
-    e.preventDefault();
-    if (!passwordForm.currentPassword) {
-      showError("Please enter your current password.");
-      return;
-    }
-    if (passwordForm.newPassword.length < 6) {
-      showError("New password must be at least 6 characters in length.");
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showError("New passwords do not match. Please re-check.");
-      return;
-    }
-
-    // Simulated secure credential refresh
-    setPasswordForm({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
-    showToast("Password updated successfully. Next session will require new credentials.");
-  };
-
-  // Handle Logout
+  // Sign out confirmation
   const onConfirmLogout = async () => {
     await handleLogout();
     navigate("/login", { replace: true });
@@ -171,6 +133,31 @@ const Settings = () => {
         </div>
       )}
 
+      {/* Error Feedback */}
+      {errorMessage && (
+        <div
+          style={{
+            position: "fixed",
+            top: "24px",
+            right: "24px",
+            background: "#1f1315",
+            border: "1px solid rgba(239, 68, 68, 0.4)",
+            color: "#f87171",
+            padding: "12px 18px",
+            borderRadius: "10px",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "13px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          }}
+        >
+          <AlertCircle size={16} />
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
       {/* Header */}
       <section className="settings-header">
         <div className="settings-header__badge">
@@ -179,7 +166,7 @@ const Settings = () => {
         </div>
         <h1>Settings & Preferences</h1>
         <p>
-          Manage your account profile, notification triggers, system appearance, and authentication security.
+          Manage your account profile information, target position preferences, and interface appearance.
         </p>
       </section>
 
@@ -201,17 +188,6 @@ const Settings = () => {
           <button
             type="button"
             className={`settings-tabs__tab ${
-              activeTab === "notifications" ? "settings-tabs__tab--active" : ""
-            }`}
-            onClick={() => setActiveTab("notifications")}
-          >
-            <Bell size={16} />
-            <span>Notifications</span>
-          </button>
-
-          <button
-            type="button"
-            className={`settings-tabs__tab ${
               activeTab === "appearance" ? "settings-tabs__tab--active" : ""
             }`}
             onClick={() => setActiveTab("appearance")}
@@ -220,33 +196,13 @@ const Settings = () => {
             <span>Appearance</span>
           </button>
 
+          <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
+
           <button
             type="button"
-            className={`settings-tabs__tab ${
-              activeTab === "security" ? "settings-tabs__tab--active" : ""
+            className={`settings-tabs__tab settings-tabs__tab--danger ${
+              activeTab === "logout" ? "settings-tabs__tab--active-danger" : ""
             }`}
-            onClick={() => setActiveTab("security")}
-          >
-            <ShieldCheck size={16} />
-            <span>Security & Sessions</span>
-          </button>
-
-          <button
-            type="button"
-            className={`settings-tabs__tab ${
-              activeTab === "password" ? "settings-tabs__tab--active" : ""
-            }`}
-            onClick={() => setActiveTab("password")}
-          >
-            <Key size={16} />
-            <span>Change Password</span>
-          </button>
-
-          <div style={{ height: "1px", background: "rgba(255,255,255,0.05)", margin: "4px 0" }} />
-
-          <button
-            type="button"
-            className="settings-tabs__tab settings-tabs__tab--danger"
             onClick={() => setActiveTab("logout")}
           >
             <LogOut size={16} />
@@ -272,6 +228,7 @@ const Settings = () => {
                       id="username"
                       type="text"
                       required
+                      placeholder="e.g. Jane Doe"
                       value={accountForm.username}
                       onChange={(e) =>
                         setAccountForm((prev) => ({ ...prev, username: e.target.value }))
@@ -281,13 +238,30 @@ const Settings = () => {
 
                   <div className="form-group">
                     <label htmlFor="email">Email Address</label>
-                    <input
-                      id="email"
-                      type="email"
-                      disabled
-                      value={accountForm.email}
-                      title="Email address is associated with your primary HirePilot credentials"
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        id="email"
+                        type="email"
+                        disabled
+                        value={accountForm.email}
+                        style={{ paddingRight: "36px" }}
+                        title="Email address is associated with your primary HirePilot credentials"
+                      />
+                      <span
+                        style={{
+                          position: "absolute",
+                          right: "12px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "#6b7280",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        title="Managed via primary authentication credentials"
+                      >
+                        <Lock size={14} />
+                      </span>
+                    </div>
                     <span className="hint">Managed via primary authentication credentials</span>
                   </div>
                 </div>
@@ -298,7 +272,7 @@ const Settings = () => {
                     <input
                       id="preferredRole"
                       type="text"
-                      placeholder="e.g. Senior Backend Engineer"
+                      placeholder="e.g. Senior Full Stack Engineer"
                       value={accountForm.preferredRole}
                       onChange={(e) =>
                         setAccountForm((prev) => ({ ...prev, preferredRole: e.target.value }))
@@ -307,37 +281,53 @@ const Settings = () => {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="timezone">Timezone</label>
-                    <select
-                      id="timezone"
-                      value={accountForm.timezone}
+                    <label htmlFor="location">Location / Work Mode</label>
+                    <input
+                      id="location"
+                      type="text"
+                      placeholder="e.g. San Francisco, CA (Remote)"
+                      value={accountForm.location}
                       onChange={(e) =>
-                        setAccountForm((prev) => ({ ...prev, timezone: e.target.value }))
+                        setAccountForm((prev) => ({ ...prev, location: e.target.value }))
                       }
-                    >
-                      <option value="UTC-08:00 (Pacific Time - Los Angeles)">
-                        UTC-08:00 (Pacific Time - Los Angeles)
-                      </option>
-                      <option value="UTC-05:00 (Eastern Time - New York)">
-                        UTC-05:00 (Eastern Time - New York)
-                      </option>
-                      <option value="UTC+00:00 (London, Dublin)">
-                        UTC+00:00 (London, Dublin)
-                      </option>
-                      <option value="UTC+01:00 (Central European Time - Berlin)">
-                        UTC+01:00 (Central European Time - Berlin)
-                      </option>
-                      <option value="UTC+05:30 (India Standard Time - New Delhi)">
-                        UTC+05:30 (India Standard Time - New Delhi)
-                      </option>
-                      <option value="UTC+08:00 (Singapore / Hong Kong)">
-                        UTC+08:00 (Singapore / Hong Kong)
-                      </option>
-                    </select>
+                    />
                   </div>
                 </div>
 
-                <div>
+                <div className="form-group">
+                  <label htmlFor="timezone">Timezone</label>
+                  <select
+                    id="timezone"
+                    value={accountForm.timezone}
+                    onChange={(e) =>
+                      setAccountForm((prev) => ({ ...prev, timezone: e.target.value }))
+                    }
+                  >
+                    <option value="UTC-08:00 (Pacific Time - Los Angeles)">
+                      UTC-08:00 (Pacific Time - Los Angeles)
+                    </option>
+                    <option value="UTC-05:00 (Eastern Time - New York)">
+                      UTC-05:00 (Eastern Time - New York)
+                    </option>
+                    <option value="UTC+00:00 (London, Dublin)">
+                      UTC+00:00 (London, Dublin)
+                    </option>
+                    <option value="UTC+01:00 (Central European Time - Berlin)">
+                      UTC+01:00 (Central European Time - Berlin)
+                    </option>
+                    <option value="UTC+05:30 (India Standard Time - New Delhi)">
+                      UTC+05:30 (India Standard Time - New Delhi)
+                    </option>
+                    <option value="UTC+08:00 (Singapore / Hong Kong)">
+                      UTC+08:00 (Singapore / Hong Kong)
+                    </option>
+                    <option value="UTC+09:00 (Tokyo, Seoul)">
+                      UTC+09:00 (Tokyo, Seoul)
+                    </option>
+                  </select>
+                </div>
+
+                <div style={{ marginTop: "8px" }}>
                   <button type="submit" className="btn-primary">
                     <Save size={14} />
                     <span>Save Account Changes</span>
@@ -347,392 +337,96 @@ const Settings = () => {
             </div>
           )}
 
-          {/* TAB 2: NOTIFICATIONS */}
-          {activeTab === "notifications" && (
-            <div>
-              <div className="settings-content__header">
-                <h2>Notification Preferences</h2>
-                <p>Configure which automated alerts and reminders HirePilot delivers to you.</p>
-              </div>
-
-              <div>
-                <div className="toggle-item">
-                  <div className="toggle-item__info">
-                    <span className="title">Roadmap Milestone Reminders</span>
-                    <span className="desc">
-                      Receive proactive notifications when preparation roadmap tasks are scheduled.
-                    </span>
-                  </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={notifications.roadmapReminders}
-                      onChange={() => handleToggleNotification("roadmapReminders")}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-
-                <div className="toggle-item">
-                  <div className="toggle-item__info">
-                    <span className="title">Interview Plan Completion Alerts</span>
-                    <span className="desc">
-                      Notify you as soon as the Gemini AI engine finishes parsing your resume and questions.
-                    </span>
-                  </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={notifications.planCompletion}
-                      onChange={() => handleToggleNotification("planCompletion")}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-
-                <div className="toggle-item">
-                  <div className="toggle-item__info">
-                    <span className="title">Weekly Candidate Readiness Digest</span>
-                    <span className="desc">
-                      A summary email showcasing match score progress and skill gap closing metrics.
-                    </span>
-                  </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={notifications.weeklyDigest}
-                      onChange={() => handleToggleNotification("weeklyDigest")}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-
-                <div className="toggle-item">
-                  <div className="toggle-item__info">
-                    <span className="title">Product & AI Model Updates</span>
-                    <span className="desc">
-                      Stay informed about new interview generation frameworks and ATS optimizations.
-                    </span>
-                  </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={notifications.productUpdates}
-                      onChange={() => handleToggleNotification("productUpdates")}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: APPEARANCE */}
+          {/* TAB 2: APPEARANCE (ONLY 2 THEMES: DEFAULT & 1 EXTRA) */}
           {activeTab === "appearance" && (
             <div>
               <div className="settings-content__header">
-                <h2>Interface & Visual Appearance</h2>
-                <p>Customize the visual presentation and accent palette of your HirePilot dashboard.</p>
+                <h2>Interface & Appearance</h2>
+                <p>Choose your workspace accent theme. Changes apply instantly across the entire platform.</p>
               </div>
 
-              <div className="settings-form">
-                <div className="form-group">
-                  <label>Interface Theme</label>
-                  <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
-                    <button
-                      type="button"
-                      className={`btn-secondary ${
-                        appearance.theme === "dark" ? "btn-secondary--active" : ""
-                      }`}
-                      style={{
-                        borderColor: appearance.theme === "dark" ? "#ff2d78" : undefined,
-                        background: appearance.theme === "dark" ? "rgba(255,45,120,0.12)" : undefined,
-                      }}
-                      onClick={() => handleUpdateAppearance("theme", "dark")}
-                    >
-                      <Moon size={14} />
-                      <span>HirePilot Dark (Default)</span>
-                    </button>
-                  </div>
-                  <span className="hint">HirePilot is optimized for dark mode to prevent visual fatigue during interview prep.</span>
-                </div>
-
-                <div className="form-group" style={{ marginTop: "12px" }}>
-                  <label>Primary Accent Tone</label>
-                  <div className="color-picker-row">
-                    <div
-                      className={`color-option ${
-                        appearance.accentColor === "#ff2d78" ? "color-option--active" : ""
-                      }`}
-                      onClick={() => handleUpdateAppearance("accentColor", "#ff2d78")}
-                    >
-                      <span className="dot" style={{ background: "#ff2d78" }} />
-                      <span>Neon Magenta (Official)</span>
-                    </div>
-
-                    <div
-                      className={`color-option ${
-                        appearance.accentColor === "#06b6d4" ? "color-option--active" : ""
-                      }`}
-                      onClick={() => handleUpdateAppearance("accentColor", "#06b6d4")}
-                    >
-                      <span className="dot" style={{ background: "#06b6d4" }} />
-                      <span>Electric Cyan</span>
-                    </div>
-
-                    <div
-                      className={`color-option ${
-                        appearance.accentColor === "#8b5cf6" ? "color-option--active" : ""
-                      }`}
-                      onClick={() => handleUpdateAppearance("accentColor", "#8b5cf6")}
-                    >
-                      <span className="dot" style={{ background: "#8b5cf6" }} />
-                      <span>Cyber Violet</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginTop: "12px" }}>
-                  <label htmlFor="density">Dashboard Density</label>
-                  <select
-                    id="density"
-                    value={appearance.density}
-                    onChange={(e) => handleUpdateAppearance("density", e.target.value)}
-                  >
-                    <option value="comfortable">Comfortable (Standard spacing)</option>
-                    <option value="compact">Compact (High data density)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: SECURITY */}
-          {activeTab === "security" && (
-            <div>
-              <div className="settings-content__header">
-                <h2>Security & Sessions</h2>
-                <p>Review active authenticated browser sessions and account protection status.</p>
-              </div>
-
-              <div className="toggle-item">
-                <div className="toggle-item__info">
-                  <span className="title">Two-Factor Authentication (2FA)</span>
-                  <span className="desc">
-                    Require a one-time verification passcode in addition to your password upon signing in.
-                  </span>
-                </div>
-                <label className="switch">
-                  <input
-                    type="checkbox"
-                    checked={twoFactorEnabled}
-                    onChange={() => {
-                      setTwoFactorEnabled(!twoFactorEnabled);
-                      showToast(
-                        !twoFactorEnabled
-                          ? "2FA enabled for your account"
-                          : "2FA disabled"
-                      );
+              <div className="appearance-section">
+                <label className="section-label">Select Accent Theme</label>
+                <div className="theme-cards-grid">
+                  {/* Theme 1: HirePilot Neon (Default) */}
+                  <div
+                    className={`theme-card ${
+                      selectedTheme === "neon" ? "theme-card--active" : ""
+                    }`}
+                    onClick={() => handleThemeChange("neon")}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") handleThemeChange("neon");
                     }}
-                  />
-                  <span className="slider" />
-                </label>
-              </div>
-
-              <div style={{ marginTop: "24px" }}>
-                <span style={{ fontSize: "12px", fontWeight: "600", color: "#e2e8f0" }}>
-                  Active Device Session
-                </span>
-
-                <div className="session-card">
-                  <div className="session-card__left">
-                    <div className="icon-box">
-                      <ShieldCheck size={20} />
-                    </div>
-                    <div>
-                      <div className="device-name">Current Web Client • Windows (Chrome)</div>
-                      <div className="device-info">
-                        Active Now • Localhost (127.0.0.1) • Authenticated JWT
+                  >
+                    <div className="theme-card__header">
+                      <div className="theme-card__swatch" style={{ background: "#ff2d78" }} />
+                      <div className="theme-card__status">
+                        {selectedTheme === "neon" && (
+                          <span className="active-pill">
+                            <Check size={12} />
+                            <span>Active</span>
+                          </span>
+                        )}
                       </div>
                     </div>
+                    <div className="theme-card__body">
+                      <h3>HirePilot Neon (Default)</h3>
+                      <p>Signature dark interface with vibrant neon magenta buttons, highlights, and borders.</p>
+                    </div>
                   </div>
-                  <span className="badge-current">This Device</span>
+
+                  {/* Theme 2: Cyber Cyan (1 Extra Theme) */}
+                  <div
+                    className={`theme-card ${
+                      selectedTheme === "cyan" ? "theme-card--active" : ""
+                    }`}
+                    onClick={() => handleThemeChange("cyan")}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") handleThemeChange("cyan");
+                    }}
+                  >
+                    <div className="theme-card__header">
+                      <div className="theme-card__swatch" style={{ background: "#06b6d4" }} />
+                      <div className="theme-card__status">
+                        {selectedTheme === "cyan" && (
+                          <span className="active-pill" style={{ color: "#06b6d4", background: "rgba(6, 182, 212, 0.12)", borderColor: "rgba(6, 182, 212, 0.3)" }}>
+                            <Check size={12} />
+                            <span>Active</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="theme-card__body">
+                      <h3>Cyber Cyan</h3>
+                      <p>Cool midnight interface with electric cyan accents, indicators, and buttons.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="theme-note">
+                  <Sparkles size={14} />
+                  <span>Theme preferences are stored locally and will persist automatically across sessions.</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 5: CHANGE PASSWORD */}
-          {activeTab === "password" && (
-            <div>
-              <div className="settings-content__header">
-                <h2>Change Password</h2>
-                <p>Update your password to keep your candidate account and resume data protected.</p>
-              </div>
-
-              {errorMessage && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "12px",
-                    marginBottom: "16px",
-                    borderRadius: "8px",
-                    background: "rgba(239, 68, 68, 0.12)",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    color: "#f87171",
-                    fontSize: "12px",
-                  }}
-                >
-                  <AlertCircle size={16} />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              <form className="settings-form" onSubmit={handleChangePassword}>
-                <div className="form-group">
-                  <label htmlFor="currentPassword">Current Password</label>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      id="currentPassword"
-                      type={showPasswords.current ? "text" : "password"}
-                      required
-                      placeholder="Enter current password"
-                      value={passwordForm.currentPassword}
-                      onChange={(e) =>
-                        setPasswordForm((prev) => ({
-                          ...prev,
-                          currentPassword: e.target.value,
-                        }))
-                      }
-                    />
-                    <button
-                      type="button"
-                      style={{
-                        position: "absolute",
-                        right: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        color: "#6b7280",
-                        cursor: "pointer",
-                      }}
-                      onClick={() =>
-                        setShowPasswords((prev) => ({
-                          ...prev,
-                          current: !prev.current,
-                        }))
-                      }
-                    >
-                      {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="newPassword">New Password</label>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      id="newPassword"
-                      type={showPasswords.new ? "text" : "password"}
-                      required
-                      placeholder="Minimum 6 characters"
-                      value={passwordForm.newPassword}
-                      onChange={(e) =>
-                        setPasswordForm((prev) => ({
-                          ...prev,
-                          newPassword: e.target.value,
-                        }))
-                      }
-                    />
-                    <button
-                      type="button"
-                      style={{
-                        position: "absolute",
-                        right: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        color: "#6b7280",
-                        cursor: "pointer",
-                      }}
-                      onClick={() =>
-                        setShowPasswords((prev) => ({
-                          ...prev,
-                          new: !prev.new,
-                        }))
-                      }
-                    >
-                      {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="confirmPassword">Confirm New Password</label>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      id="confirmPassword"
-                      type={showPasswords.confirm ? "text" : "password"}
-                      required
-                      placeholder="Re-enter new password"
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) =>
-                        setPasswordForm((prev) => ({
-                          ...prev,
-                          confirmPassword: e.target.value,
-                        }))
-                      }
-                    />
-                    <button
-                      type="button"
-                      style={{
-                        position: "absolute",
-                        right: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        color: "#6b7280",
-                        cursor: "pointer",
-                      }}
-                      onClick={() =>
-                        setShowPasswords((prev) => ({
-                          ...prev,
-                          confirm: !prev.confirm,
-                        }))
-                      }
-                    >
-                      {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <button type="submit" className="btn-primary">
-                    <Key size={14} />
-                    <span>Update Password</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* TAB 6: LOGOUT / DANGER ZONE */}
+          {/* TAB 3: SIGN OUT */}
           {activeTab === "logout" && (
             <div>
               <div className="settings-content__header">
                 <h2>Account Sign Out</h2>
-                <p>Terminating your session will clear your secure cookies and return you to the login screen.</p>
+                <p>Terminating your session will safely clear your secure cookies and return you to the login screen.</p>
               </div>
 
               <div className="danger-zone">
                 <h3>Sign Out from HirePilot</h3>
                 <p>
-                  Are you sure you want to log out? Any unsaved interview strategy generation in progress will be halted, but your saved plans and roadmap milestones are safely stored.
+                  Are you sure you want to log out? Your interview plans, candidate profile, and roadmap milestones are safely stored in your account.
                 </p>
 
                 <button
