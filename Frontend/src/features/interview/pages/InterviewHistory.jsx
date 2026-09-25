@@ -14,6 +14,9 @@ import {
   Briefcase,
   Layers,
   X,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
 } from "../../../components/ui/Icons";
 
 const parseRoleAndCompany = (rawTitle) => {
@@ -52,17 +55,36 @@ const getStatus = (score) => {
 };
 
 const InterviewHistory = () => {
-  const { reports, getReports, getResumePdf } = useInterview();
+  const { reports, getReports, getResumePdf, deleteReport } = useInterview();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [deleteModalPlan, setDeleteModalPlan] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
     getReports();
   }, []);
+
+  const handleDeletePlan = async () => {
+    if (!deleteModalPlan) return;
+    setIsDeleting(true);
+    try {
+      await deleteReport(deleteModalPlan._id);
+      setToastMessage(`Deleted interview plan "${deleteModalPlan.title}"`);
+      setDeleteModalPlan(null);
+      setTimeout(() => setToastMessage(""), 3500);
+    } catch (err) {
+      console.error("Failed to delete interview plan:", err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   // Filter & Sort Logic
   const filteredAndSortedReports = useMemo(() => {
@@ -409,6 +431,15 @@ const InterviewHistory = () => {
                             <span>View Plan</span>
                             <ExternalLink size={13} />
                           </Link>
+
+                          <button
+                            type="button"
+                            className="row-btn row-btn--danger"
+                            onClick={() => setDeleteModalPlan(report)}
+                            title="Delete interview plan"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -453,8 +484,62 @@ const InterviewHistory = () => {
           </div>
         )}
       </div>
+
+      {/* Toast Feedback */}
+      {toastMessage && (
+        <div className="profile-toast">
+          <CheckCircle2 size={16} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalPlan && (
+        <div
+          className="delete-modal-overlay"
+          onClick={() => !isDeleting && setDeleteModalPlan(null)}
+        >
+          <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal__icon">
+              <Trash2 size={24} />
+            </div>
+
+            <div className="delete-modal__header">
+              <h3>Delete Interview Preparation Plan</h3>
+              <p>
+                Are you sure you want to permanently delete this interview plan? This will remove all generated technical and behavioral questions, skill gap analyses, and active roadmap milestone tasks.
+              </p>
+            </div>
+
+            <div className="delete-modal__target">
+              <span>{deleteModalPlan.title || "Custom Interview Strategy"}</span>
+            </div>
+
+            <div className="delete-modal__actions">
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={() => setDeleteModalPlan(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-btn"
+                onClick={handleDeletePlan}
+                disabled={isDeleting}
+              >
+                <Trash2 size={14} />
+                <span>{isDeleting ? "Deleting..." : "Delete Plan"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 export default InterviewHistory;

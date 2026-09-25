@@ -1,6 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-useless-assignment */
-import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "../services/interview.api"
+import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf, deleteInterviewReport } from "../services/interview.api"
 import { useContext, useEffect } from "react"
 import { InterviewContext } from "../interview.context"
 import { useParams } from "react-router"
@@ -85,6 +83,27 @@ export const useInterview = () => {
         }
     }
 
+    const deleteReport = async (id) => {
+        const targetId = id || interviewId;
+        if (!targetId) return false;
+        try {
+            await deleteInterviewReport(targetId);
+            setReports((prev) => prev.filter((r) => r._id !== targetId));
+            if (report && report._id === targetId) {
+                setReport(null);
+            }
+            try {
+                localStorage.removeItem(`hirepilot_prep_${targetId}`);
+            } catch (e) {
+                console.error("Failed to clear prep checklist:", e);
+            }
+            return true;
+        } catch (error) {
+            console.error("Error deleting report:", error);
+            throw error;
+        }
+    };
+
     useEffect(() => {
         if (interviewId) {
             if (!report || report._id !== interviewId) {
@@ -95,6 +114,6 @@ export const useInterview = () => {
         }
     }, [ interviewId ])
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf }
+    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, deleteReport }
 
-}
+}

@@ -1,8 +1,9 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import "../style/interview.scss";
 import { useInterview } from "../hooks/useInterview.js";
 import { useParams, useNavigate } from "react-router";
+import { Trash2 } from "../../../components/ui/Icons";
+
 
 const NAV_ITEMS = [
   {
@@ -139,9 +140,25 @@ const RoadMapDay = ({ day }) => {
 // ── Main Component ────────────────────────────────────────────────────────────
 const Interview = () => {
   const [activeNav, setActiveNav] = useState("technical");
-  const { report, loading, getResumePdf } = useInterview();
+  const { report, loading, getResumePdf, deleteReport } = useInterview();
   const { interviewId } = useParams();
   const navigate = useNavigate();
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteReport(interviewId);
+      navigate("/interview/history", { replace: true });
+    } catch (err) {
+      console.error("Failed to delete interview plan:", err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -235,9 +252,35 @@ const Interview = () => {
             </svg>
             Download Resume
           </button>
+
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="button"
+            style={{
+              marginTop: "0.5rem",
+              background: "rgba(239, 68, 68, 0.1)",
+              color: "#ef4444",
+              border: "1px solid rgba(239, 68, 68, 0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              cursor: "pointer",
+              padding: "0.6rem 1rem",
+              borderRadius: "8px",
+              fontSize: "0.85rem",
+              fontWeight: "600",
+              width: "100%",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Trash2 size={15} />
+            <span>Delete Plan</span>
+          </button>
         </nav>
 
         <div className="interview-divider" />
+
 
         {/* ── Center Content ── */}
         <main className="interview-content">
@@ -328,8 +371,54 @@ const Interview = () => {
           </div>
         </aside>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div
+          className="delete-modal-overlay"
+          onClick={() => !isDeleting && setShowDeleteModal(false)}
+        >
+          <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal__icon">
+              <Trash2 size={24} />
+            </div>
+
+            <div className="delete-modal__header">
+              <h3>Delete Interview Preparation Plan</h3>
+              <p>
+                Are you sure you want to permanently delete this interview strategy? All technical questions, behavioral frameworks, and roadmap milestone checklist progress will be removed.
+              </p>
+            </div>
+
+            <div className="delete-modal__target">
+              <span>{report?.title || "Custom Interview Strategy"}</span>
+            </div>
+
+            <div className="delete-modal__actions">
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-btn"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 size={14} />
+                <span>{isDeleting ? "Deleting..." : "Delete Plan"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 export default Interview;
