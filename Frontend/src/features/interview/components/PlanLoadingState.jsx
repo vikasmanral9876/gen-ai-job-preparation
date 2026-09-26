@@ -8,6 +8,8 @@ import {
   Target,
   FileText,
   Award,
+  AlertCircle,
+  RotateCcw,
 } from "../../../components/ui/Icons";
 import "../style/loading-state.scss";
 
@@ -37,16 +39,89 @@ const AI_STEPS = [
 const PlanLoadingState = ({
   title = "Generating Your Custom Interview Plan",
   subtitle,
+  isError = false,
+  errorTitle = "We couldn't generate your interview.",
+  errorSubtitle = "Please try again.",
+  onRetry,
+  onCancel,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   useEffect(() => {
+    if (isError) return;
     const interval = setInterval(() => {
       setCurrentStepIndex((prev) => (prev < AI_STEPS.length - 1 ? prev + 1 : prev));
     }, 2400);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isError]);
+
+  if (isError) {
+    return (
+      <main className="plan-loading-screen plan-loading-screen--error" role="alert" aria-live="assertive">
+        {/* Background ambient lighting glows */}
+        <div className="plan-loading-screen__glow-top plan-loading-screen__glow-top--error" />
+        <div className="plan-loading-screen__glow-bottom plan-loading-screen__glow-bottom--error" />
+
+        <div className="plan-loading-card plan-loading-card--error">
+          {/* Hero Alert Orb */}
+          <div className="plan-loading-orb-container plan-loading-orb-container--error">
+            <div className="plan-loading-orb__ring-outer plan-loading-orb__ring-outer--error" />
+            <div className="plan-loading-orb__ring-inner plan-loading-orb__ring-inner--error" />
+            <div className="plan-loading-orb__core plan-loading-orb__core--error">
+              <AlertCircle size={32} />
+            </div>
+            <div className="plan-loading-orb__badge plan-loading-orb__badge--error">
+              !
+            </div>
+          </div>
+
+          {/* AI Engine Status Pill - Notice */}
+          <div className="plan-loading-engine-pill plan-loading-engine-pill--error">
+            <span className="live-dot live-dot--error" />
+            <span className="engine-text">Generation Notice</span>
+          </div>
+
+          {/* Header Titles */}
+          <div className="plan-loading-header">
+            <h2 className="plan-loading-title plan-loading-title--error">{errorTitle}</h2>
+            <p className="plan-loading-subtitle plan-loading-subtitle--error">
+              {errorSubtitle}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="plan-error-actions">
+            {onRetry && (
+              <button
+                type="button"
+                className="plan-retry-button"
+                onClick={onRetry}
+              >
+                <RotateCcw size={16} />
+                <span>Try Again</span>
+              </button>
+            )}
+            {onCancel && (
+              <button
+                type="button"
+                className="plan-cancel-button"
+                onClick={onCancel}
+              >
+                Edit Details
+              </button>
+            )}
+          </div>
+
+          {/* Helpful reassurance footer */}
+          <div className="plan-loading-footer">
+            <ShieldCheck size={14} />
+            <span>Your uploaded resume & inputs are securely preserved</span>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   const activeStep = AI_STEPS[currentStepIndex];
 

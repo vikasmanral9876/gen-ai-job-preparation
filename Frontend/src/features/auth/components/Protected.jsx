@@ -1,11 +1,10 @@
 import React from "react";
-import { Navigate, useLocation } from "react-router";
+import { Navigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { Logo, Loader2 } from "../../../components/ui/Icons";
 
 const Protected = ({ children }) => {
   const { loading, user } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return (
@@ -46,7 +45,7 @@ const Protected = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;

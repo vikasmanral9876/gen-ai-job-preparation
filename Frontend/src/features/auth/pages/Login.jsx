@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useLocation } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import "../auth.form.scss";
 import {
@@ -14,9 +14,8 @@ import {
 } from "../../../components/ui/Icons";
 
 const Login = () => {
-  const { loading, handleLogin, handleGoogleLogin } = useAuth();
+  const { user, loading, handleLogin, handleGoogleLogin } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const googleBtnRef = useRef(null);
 
   const [email, setEmail] = useState("");
@@ -24,8 +23,14 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const from = location.state?.from?.pathname || "/";
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  // If already logged in, redirect directly to dashboard
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   // Initialize Google Identity Services
   useEffect(() => {
@@ -44,7 +49,7 @@ const Login = () => {
                 setErrorMessage("");
                 const result = await handleGoogleLogin({ idToken: response.credential });
                 if (result.success) {
-                  navigate(from, { replace: true });
+                  navigate("/dashboard", { replace: true });
                 } else {
                   setErrorMessage(result.error || "Google sign-in failed.");
                 }
@@ -80,7 +85,7 @@ const Login = () => {
       }, 100);
       return () => clearInterval(timer);
     }
-  }, [clientId, handleGoogleLogin, navigate, from]);
+  }, [clientId, handleGoogleLogin, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -93,7 +98,7 @@ const Login = () => {
 
     const result = await handleLogin({ email: email.trim(), password });
     if (result.success) {
-      navigate(from, { replace: true });
+      navigate("/dashboard", { replace: true });
     } else {
       setErrorMessage(result.error || "Invalid email or password.");
     }

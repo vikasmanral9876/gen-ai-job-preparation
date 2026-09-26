@@ -123,11 +123,10 @@ const StatsGrid = ({ reports = [] }) => {
           <span
             className="stat-number"
             style={{
-              fontSize: "1.15rem",
-              lineHeight: 1.3,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              fontSize: "1.1rem",
+              lineHeight: 1.35,
+              wordBreak: "break-word",
+              whiteSpace: "normal",
               maxWidth: "100%",
             }}
             title={latestRole || "None"}

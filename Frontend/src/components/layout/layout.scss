@@ -282,12 +282,14 @@
 
 // ── Main Column ───────────────────────────────────────────────────────────────
 .saas-main {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
   position: relative;
+  width: 100%;
 }
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
@@ -534,7 +536,10 @@
 .saas-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
+  min-width: 0;
+  width: 100%;
 }
 
 // ── Mobile Responsive Breakpoints ─────────────────────────────────────────────

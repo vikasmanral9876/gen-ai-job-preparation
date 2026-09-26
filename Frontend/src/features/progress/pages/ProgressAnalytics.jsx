@@ -199,10 +199,19 @@ const ProgressAnalytics = () => {
       });
     }
 
-    // Sort descending by timestamp
-    return list
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .slice(0, 10);
+    // Sort descending by timestamp and deduplicate
+    const sorted = list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const seen = new Set();
+    const unique = [];
+    for (const act of sorted) {
+      const key = act.taskId ? `task_${act.taskId}` : act.message;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(act);
+      }
+    }
+
+    return unique.slice(0, 10);
   }, [activityLog, reports]);
 
   const hasReports = reports && reports.length > 0;

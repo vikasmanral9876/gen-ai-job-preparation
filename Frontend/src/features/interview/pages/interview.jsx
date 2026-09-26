@@ -147,6 +147,29 @@ const Interview = () => {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccessMessage, setDownloadSuccessMessage] = useState("");
+  const [downloadErrorMessage, setDownloadErrorMessage] = useState("");
+
+  const handleDownloadResume = async () => {
+    if (!interviewId || isDownloading) return;
+    setIsDownloading(true);
+    setDownloadSuccessMessage("");
+    setDownloadErrorMessage("");
+    try {
+      await getResumePdf(interviewId);
+      setDownloadSuccessMessage("PDF generated successfully");
+      setTimeout(() => setDownloadSuccessMessage(""), 4000);
+    } catch (err) {
+      console.error("Error generating resume PDF:", err);
+      setDownloadErrorMessage(
+        err?.message || "Failed to generate your resume PDF. Please try again shortly."
+      );
+      setTimeout(() => setDownloadErrorMessage(""), 4000);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const confirmDelete = async () => {
     setIsDeleting(true);
@@ -230,10 +253,10 @@ const Interview = () => {
             ))}
           </div>
           <button
-            onClick={() => {
-              getResumePdf(interviewId);
-            }}
+            onClick={handleDownloadResume}
+            disabled={loading || isDownloading}
             className="button primary-button"
+            style={{ opacity: loading || isDownloading ? 0.75 : 1, cursor: loading || isDownloading ? "not-allowed" : "pointer" }}
           >
             <svg
               height={"0.8rem"}
@@ -408,6 +431,47 @@ const Interview = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notifications */}
+      {downloadSuccessMessage && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            background: "#10b981",
+            color: "#ffffff",
+            padding: "0.75rem 1.25rem",
+            borderRadius: "8px",
+            fontSize: "0.85rem",
+            fontWeight: "600",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+            zIndex: 9999,
+          }}
+        >
+          {downloadSuccessMessage}
+        </div>
+      )}
+
+      {downloadErrorMessage && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            background: "#ef4444",
+            color: "#ffffff",
+            padding: "0.75rem 1.25rem",
+            borderRadius: "8px",
+            fontSize: "0.85rem",
+            fontWeight: "600",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+            zIndex: 9999,
+          }}
+        >
+          {downloadErrorMessage}
         </div>
       )}
     </div>

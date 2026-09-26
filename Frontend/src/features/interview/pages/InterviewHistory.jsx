@@ -17,6 +17,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  Loader2,
 } from "../../../components/ui/Icons";
 
 const parseRoleAndCompany = (rawTitle) => {
@@ -55,7 +56,7 @@ const getStatus = (score) => {
 };
 
 const InterviewHistory = () => {
-  const { reports, getReports, getResumePdf, deleteReport } = useInterview();
+  const { reports, getReports, getResumePdf, deleteReport, loading, pagination } = useInterview();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -156,8 +157,14 @@ const InterviewHistory = () => {
     setIsDownloading(true);
     try {
       await getResumePdf(reportId);
+      setToastMessage("PDF generated successfully");
+      setTimeout(() => setToastMessage(""), 3500);
     } catch (err) {
       console.error("Download error:", err);
+      setToastMessage(
+        err?.message || "Failed to generate your resume PDF. Please try again shortly."
+      );
+      setTimeout(() => setToastMessage(""), 4000);
     } finally {
       setIsDownloading(false);
     }
@@ -237,7 +244,7 @@ const InterviewHistory = () => {
         <div className="metric-item">
           <span className="label">High Match Positions</span>
           <span className="value">{highMatchCount}</span>
-          <span className="sub">Score $\ge$ 80%</span>
+          <span className="sub">Score ≥ 80%</span>
         </div>
       </div>
 
@@ -334,120 +341,168 @@ const InterviewHistory = () => {
 
       {/* ── Data Table / Cards ── */}
       <div className="history-table-card">
-        {filteredAndSortedReports.length > 0 ? (
-          <div className="table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th>Job Title</th>
-                  <th>Company</th>
-                  <th>Date Created</th>
-                  <th>Interview Type</th>
-                  <th>Match Score</th>
-                  <th>Readiness</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedReports.map((report) => {
-                  const { role, company } = parseRoleAndCompany(report.title);
-                  const status = getStatus(report.matchScore);
-                  const scoreClass =
-                    report.matchScore >= 80
-                      ? "score-badge--high"
-                      : report.matchScore >= 60
-                      ? "score-badge--mid"
-                      : "score-badge--low";
-
-                  return (
-                    <tr key={report._id}>
-                      {/* Job Title */}
-                      <td>
-                        <div className="col-role">
-                          <span className="job-title">{role}</span>
-                          <span className="role-id">
-                            ID: #{report._id.substring(report._id.length - 6)}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Company */}
-                      <td>
-                        <div className="col-company">
-                          <Briefcase size={14} style={{ color: "#7d8590" }} />
-                          <span>{company}</span>
-                        </div>
-                      </td>
-
-                      {/* Date */}
-                      <td className="col-date">
-                        <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                          <Calendar size={13} />
-                          {formatDate(report.createdAt)}
-                        </span>
-                      </td>
-
-                      {/* Type */}
-                      <td>
-                        <span className="col-type">
-                          <Layers size={13} />
-                          Tech + Behavioral
-                        </span>
-                      </td>
-
-                      {/* Score */}
-                      <td className="col-score">
-                        <span className={`score-badge ${scoreClass}`}>
-                          {report.matchScore ?? 0}%
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="col-status">
-                        <span className={`status-badge ${status.class}`}>
-                          {status.label}
-                        </span>
-                      </td>
-
-                      {/* Actions */}
-                      <td style={{ textAlign: "right" }}>
-                        <div className="col-actions">
-                          <button
-                            type="button"
-                            className="row-btn"
-                            onClick={() => handleDownload(report._id)}
-                            title="Download tailored ATS Resume"
-                            disabled={isDownloading}
-                          >
-                            <Download size={13} />
-                            <span>Resume</span>
-                          </button>
-
-                          <Link
-                            to={`/interview/${report._id}`}
-                            className="row-btn row-btn--primary"
-                            title="Open Strategy & Road Map"
-                          >
-                            <span>View Plan</span>
-                            <ExternalLink size={13} />
-                          </Link>
-
-                          <button
-                            type="button"
-                            className="row-btn row-btn--danger"
-                            onClick={() => setDeleteModalPlan(report)}
-                            title="Delete interview plan"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        {loading && reports.length === 0 ? (
+          <div className="dash-empty-state" style={{ padding: "4rem 1.5rem" }}>
+            <Loader2 size={32} className="spin-loader" style={{ color: "#ff2d78", margin: "0 auto" }} />
+            <h3 style={{ marginTop: "1rem" }}>Loading interview strategies...</h3>
+            <p>Retrieving your saved interview roadmap records.</p>
           </div>
+        ) : filteredAndSortedReports.length > 0 ? (
+          <>
+            <div className="table-responsive">
+              <table>
+                <colgroup>
+                  <col className="col-w-role" />
+                  <col className="col-w-company" />
+                  <col className="col-w-date" />
+                  <col className="col-w-type" />
+                  <col className="col-w-score" />
+                  <col className="col-w-readiness" />
+                  <col className="col-w-actions" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>Job Title</th>
+                    <th>Company</th>
+                    <th>Date Created</th>
+                    <th>Interview Type</th>
+                    <th>Match Score</th>
+                    <th>Readiness</th>
+                    <th style={{ textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSortedReports.map((report) => {
+                    const { role, company } = parseRoleAndCompany(report.title);
+                    const status = getStatus(report.matchScore);
+                    const scoreClass =
+                      report.matchScore >= 80
+                        ? "score-badge--high"
+                        : report.matchScore >= 60
+                        ? "score-badge--mid"
+                        : "score-badge--low";
+
+                    return (
+                      <tr key={report._id}>
+                        {/* Job Title */}
+                        <td>
+                          <div className="col-role">
+                            <span className="job-title">{role}</span>
+                            <span className="role-id">
+                              ID: #{report._id.substring(report._id.length - 6)}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Company */}
+                        <td>
+                          <div className="col-company">
+                            <Briefcase size={14} style={{ color: "#7d8590", flexShrink: 0 }} />
+                            <span>{company}</span>
+                          </div>
+                        </td>
+
+                        {/* Date */}
+                        <td>
+                          <div className="col-date">
+                            <Calendar size={13} style={{ flexShrink: 0 }} />
+                            <span>{formatDate(report.createdAt)}</span>
+                          </div>
+                        </td>
+
+                        {/* Type */}
+                        <td>
+                          <span className="col-type">
+                            <Layers size={13} style={{ flexShrink: 0 }} />
+                            <span>Tech + Behavioral</span>
+                          </span>
+                        </td>
+
+                        {/* Score */}
+                        <td>
+                          <div className="col-score">
+                            <span className={`score-badge ${scoreClass}`}>
+                              {report.matchScore ?? 0}%
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td>
+                          <div className="col-status">
+                            <span className={`status-badge ${status.class}`}>
+                              {status.label}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ textAlign: "right" }}>
+                          <div className="col-actions">
+                            <button
+                              type="button"
+                              className="row-btn"
+                              onClick={() => handleDownload(report._id)}
+                              title="Download tailored ATS Resume"
+                              disabled={isDownloading}
+                            >
+                              <Download size={13} />
+                              <span>Resume</span>
+                            </button>
+
+                            <Link
+                              to={`/interview/${report._id}`}
+                              className="row-btn row-btn--primary"
+                              title="Open Strategy & Road Map"
+                            >
+                              <span>View Plan</span>
+                              <ExternalLink size={13} />
+                            </Link>
+
+                            <button
+                              type="button"
+                              className="row-btn row-btn--danger"
+                              onClick={() => setDeleteModalPlan(report)}
+                              title="Delete interview plan"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Server Pagination Bar */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="history-pagination">
+                <div className="history-pagination__info">
+                  Showing page <strong>{pagination.page}</strong> of <strong>{pagination.totalPages}</strong> ({pagination.total} total strategies)
+                </div>
+                <div className="history-pagination__actions">
+                  <button
+                    type="button"
+                    className="page-btn"
+                    onClick={() => getReports({ page: pagination.page - 1, limit: pagination.limit })}
+                    disabled={loading || pagination.page <= 1}
+                  >
+                    &larr; Previous
+                  </button>
+                  <button
+                    type="button"
+                    className="page-btn"
+                    onClick={() => getReports({ page: pagination.page + 1, limit: pagination.limit })}
+                    disabled={loading || pagination.page >= pagination.totalPages}
+                  >
+                    Next &rarr;
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         ) : reports.length > 0 ? (
           // Search/filter empty state
           <div className="dash-empty-state" style={{ padding: "3rem 1.5rem" }}>

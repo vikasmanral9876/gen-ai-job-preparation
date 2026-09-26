@@ -2,6 +2,11 @@ import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router";
 import { useInterview } from "../../interview/hooks/useInterview";
 import { getInterviewReportById } from "../../interview/services/interview.api";
+import {
+  saveStagedResume,
+  getStagedResume,
+  clearStagedResume,
+} from "../../interview/services/resumeStorage";
 import "../resume.scss";
 import {
   FileCheck,
@@ -20,12 +25,19 @@ import {
 } from "../../../components/ui/Icons";
 
 const ResumeManager = () => {
-  const { reports, getReports, getResumePdf } = useInterview();
+  const {
+    reports,
+    getReports,
+    getResumePdf,
+    stagedResumeFile,
+    setStagedResumeFile,
+  } = useInterview();
 
   const [activeReportDetails, setActiveReportDetails] = useState(null);
   const [showTextPreview, setShowTextPreview] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccessMessage, setDownloadSuccessMessage] = useState("");
+  const [downloadErrorMessage, setDownloadErrorMessage] = useState("");
 
   // Staged upload state for replace / update
   const [selectedFile, setSelectedFile] = useState(null);
@@ -35,6 +47,20 @@ const ResumeManager = () => {
   useEffect(() => {
     getReports();
   }, []);
+
+  // Sync staged resume file from context or IndexedDB cache
+  useEffect(() => {
+    if (stagedResumeFile && !selectedFile) {
+      setSelectedFile(stagedResumeFile);
+    } else if (!selectedFile) {
+      getStagedResume().then((file) => {
+        if (file) {
+          setSelectedFile(file);
+          setStagedResumeFile(file);
+        }
+      });
+    }
+  }, [stagedResumeFile]);
 
   // Fetch full details of the latest report to get parsed resume text and skill gaps
   useEffect(() => {
@@ -60,11 +86,13 @@ const ResumeManager = () => {
     };
   }, [reports]);
 
-  // File dropzone handlers (reusing the existing pattern)
+  // File dropzone handlers (syncing to context & IndexedDB)
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
+      setStagedResumeFile(file);
+      saveStagedResume(file);
     }
   };
 
@@ -72,6 +100,8 @@ const ResumeManager = () => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedFile(null);
+    setStagedResumeFile(null);
+    clearStagedResume();
     if (resumeInputRef.current) {
       resumeInputRef.current.value = "";
     }
@@ -92,6 +122,8 @@ const ResumeManager = () => {
     const file = e.dataTransfer.files?.[0];
     if (file) {
       setSelectedFile(file);
+      setStagedResumeFile(file);
+      saveStagedResume(file);
     }
   };
 
@@ -108,12 +140,17 @@ const ResumeManager = () => {
     if (!reportId || isDownloading) return;
     setIsDownloading(true);
     setDownloadSuccessMessage("");
+    setDownloadErrorMessage("");
     try {
       await getResumePdf(reportId);
-      setDownloadSuccessMessage("ATS-tailored resume downloaded successfully.");
+      setDownloadSuccessMessage("PDF generated successfully");
       setTimeout(() => setDownloadSuccessMessage(""), 4000);
     } catch (err) {
       console.error("Error downloading resume PDF:", err);
+      setDownloadErrorMessage(
+        err?.message || "Failed to generate your resume PDF. Please try again shortly."
+      );
+      setTimeout(() => setDownloadErrorMessage(""), 4000);
     } finally {
       setIsDownloading(false);
     }
@@ -132,7 +169,7 @@ const ResumeManager = () => {
 
   return (
     <div className="resume-page">
-      {/* Toast Notification */}
+      {/* Toast Notifications */}
       {downloadSuccessMessage && (
         <div
           style={{
@@ -150,6 +187,26 @@ const ResumeManager = () => {
           }}
         >
           {downloadSuccessMessage}
+        </div>
+      )}
+
+      {downloadErrorMessage && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            background: "#ef4444",
+            color: "#ffffff",
+            padding: "0.75rem 1.25rem",
+            borderRadius: "8px",
+            fontSize: "0.85rem",
+            fontWeight: "600",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+            zIndex: 9999,
+          }}
+        >
+          {downloadErrorMessage}
         </div>
       )}
 
@@ -336,7 +393,15 @@ const ResumeManager = () => {
                   <CheckCircle2 size={16} />
                   Ready to analyze for next application
                 </span>
-                <Link to="/create" className="apply-btn">
+                <Link
+                  to="/create"
+                  state={{ resumeFile: selectedFile }}
+                  className="apply-btn"
+                  onClick={() => {
+                    setStagedResumeFile(selectedFile);
+                    saveStagedResume(selectedFile);
+                  }}
+                >
                   <Sparkles size={16} />
                   <span>Create Plan With This Resume</span>
                 </Link>
@@ -438,7 +503,14 @@ const ResumeManager = () => {
               </p>
               <Link
                 to="/create"
+                state={selectedFile ? { resumeFile: selectedFile } : undefined}
                 className="action-btn action-btn--primary"
+                onClick={() => {
+                  if (selectedFile) {
+                    setStagedResumeFile(selectedFile);
+                    saveStagedResume(selectedFile);
+                  }
+                }}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",

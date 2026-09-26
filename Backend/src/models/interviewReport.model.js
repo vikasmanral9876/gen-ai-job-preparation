@@ -142,6 +142,9 @@ const interviewReportSchema = new mongoose.Schema(
   },
 );
 
+// Compound index for fast user reports retrieval and sorting
+interviewReportSchema.index({ user: 1, createdAt: -1 });
+
 const interviewReportModel = mongoose.model("InterviewReport", interviewReportSchema);
 
 module.exports = interviewReportModel;

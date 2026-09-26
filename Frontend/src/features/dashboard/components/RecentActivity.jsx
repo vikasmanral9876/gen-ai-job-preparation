@@ -10,10 +10,22 @@ const RecentActivity = ({ reports = [], activityLog = [] }) => {
     timestamp: r.createdAt || new Date().toISOString(),
   }));
 
-  // Merge and sort by timestamp descending
-  const combinedActivities = [...activityLog, ...planActivities]
+  // Merge and sort by timestamp descending, ensuring only 1 entry per task/action
+  const combined = [...activityLog, ...planActivities];
+  const seen = new Set();
+  const displayActivities = [];
+
+  combined
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .slice(0, 6);
+    .forEach((act) => {
+      const key = act.taskId ? `task_${act.taskId}` : act.message;
+      if (!seen.has(key)) {
+        seen.add(key);
+        displayActivities.push(act);
+      }
+    });
+
+  const finalActivities = displayActivities.slice(0, 6);
 
   const formatRelativeTime = (timestamp) => {
     if (!timestamp) return "Recently";
@@ -31,9 +43,11 @@ const RecentActivity = ({ reports = [], activityLog = [] }) => {
       if (diffDays === 1) return "Yesterday";
       if (diffDays < 7) return `${diffDays}d ago`;
 
+      const isSameYear = now.getFullYear() === past.getFullYear();
       return new Intl.DateTimeFormat("en-US", {
         month: "short",
         day: "numeric",
+        ...(isSameYear ? {} : { year: "numeric" }),
       }).format(past);
     } catch (e) {
       return "Recently";
@@ -49,9 +63,9 @@ const RecentActivity = ({ reports = [], activityLog = [] }) => {
       </div>
 
       <div className="dash-card__body">
-        {combinedActivities.length > 0 ? (
+        {finalActivities.length > 0 ? (
           <div className="activity-timeline">
-            {combinedActivities.map((act) => {
+            {finalActivities.map((act) => {
               const isTask = act.type === "task_completed";
               return (
                 <div key={act.id} className="activity-item">
@@ -62,7 +76,10 @@ const RecentActivity = ({ reports = [], activityLog = [] }) => {
                   />
                   <div className="activity-body">
                     <p className="text">{act.message}</p>
-                    <span className="time">
+                    <span
+                      className="time"
+                      title={act.timestamp ? new Date(act.timestamp).toLocaleString() : ""}
+                    >
                       {formatRelativeTime(act.timestamp)}
                     </span>
                   </div>

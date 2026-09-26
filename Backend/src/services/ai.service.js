@@ -1,11 +1,65 @@
 const { GoogleGenAI } = require("@google/genai");
-const { z } = require("zod");
-const { zodToJsonSchema } = require("zod-to-json-schema");
 const puppeteer = require("puppeteer");
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GENAI_API_KEY,
+  apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY,
 });
+
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+/**
+ * Executes a Gemini API generateContent call with automatic model fallback
+ * to stable aliases (e.g. gemini-flash-latest) if the configured model is retired or overloaded.
+ */
+async function generateGeminiContent(params) {
+  const modelCandidates = [
+    params.model || GEMINI_MODEL,
+    "gemini-3.5-flash",
+    "gemini-3.8-flash",
+    "gemini-flash-latest",
+  ];
+  const uniqueModels = [...new Set(modelCandidates)];
+
+  let lastError;
+  for (let i = 0; i < uniqueModels.length; i++) {
+    const currentModel = uniqueModels[i];
+    for (let retry = 0; retry < 2; retry++) {
+      try {
+        return await ai.models.generateContent({
+          ...params,
+          model: currentModel,
+        });
+      } catch (err) {
+        lastError = err;
+        const is404 =
+          err?.status === 404 ||
+          err?.message?.includes("no longer available") ||
+          err?.message?.includes("not found") ||
+          err?.message?.includes("not supported");
+        const is503Or429 =
+          err?.status === 503 ||
+          err?.status === 429 ||
+          err?.message?.includes("high demand") ||
+          err?.message?.includes("overloaded");
+
+        if (is404) {
+          console.warn(`Gemini model "${currentModel}" unavailable (404/retired). Trying next model...`);
+          break; // Don't retry a 404 model, proceed directly to fallback
+        }
+
+        if (is503Or429) {
+          console.warn(`Gemini model "${currentModel}" transient issue (${err?.status || "503"}). Retrying in 1.5s...`);
+          await new Promise((r) => setTimeout(r, 1500 * (retry + 1)));
+          continue;
+        }
+
+        throw err;
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 const interviewReportJsonSchema = {
   type: "object",
@@ -115,6 +169,58 @@ const interviewReportJsonSchema = {
   ],
 };
 
+/**
+ * Executes a promise with an enforced timeout to prevent indefinitely hanging requests.
+ */
+function withTimeout(promise, timeoutMs = 60000, operationName = "AI Request") {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(
+        `${operationName} timed out after ${timeoutMs / 1000} seconds.`,
+      );
+      error.code = "ETIMEDOUT";
+      reject(error);
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timer);
+  });
+}
+
+/**
+ * Safely parses JSON responses from Gemini, stripping markdown code fences if present.
+ */
+function safeJsonParse(rawText) {
+  if (!rawText || typeof rawText !== "string") {
+    throw new Error("Empty response received from AI model");
+  }
+
+  let text = rawText.trim();
+
+  // Strip markdown code fences if returned (e.g. ```json ... ``` or ``` ...)
+  if (text.startsWith("```")) {
+    text = text
+      .replace(/^```(?:json)?\s*\n?/i, "")
+      .replace(/\n?```\s*$/i, "")
+      .trim();
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (initialErr) {
+    // Fallback: extract substring between outermost JSON braces { ... }
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      const candidate = text.substring(firstBrace, lastBrace + 1);
+      return JSON.parse(candidate);
+    }
+    throw initialErr;
+  }
+}
+
 async function generateInterviewReport({
   resume,
   selfDescription,
@@ -128,8 +234,8 @@ async function generateInterviewReport({
   Ensure the output strictly includes a concise, realistic "title" for the target job role (e.g. "Senior Full-Stack Engineer" or extracted from the Job Description).
     `;
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+    const aiCall = generateGeminiContent({
+      model: GEMINI_MODEL,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -137,41 +243,62 @@ async function generateInterviewReport({
       },
     });
 
-    return JSON.parse(response.text);
-  } catch (err) {
-    console.error("Gemini API Error:", err);
+    const response = await withTimeout(
+      aiCall,
+      60000,
+      "Interview Plan Generation",
+    );
 
-    if (err.status === 503) {
-      throw new Error(
-        "Gemini AI is temporarily unavailable due to high demand. Please try again in a moment.",
-      );
-    }
-    throw err;
+    return safeJsonParse(response.text);
+  } catch (err) {
+    console.error("Gemini API Error in generateInterviewReport:", err);
+    throw new Error(
+      "We couldn't generate your interview. Please try again.",
+    );
   }
 }
 
-
 async function generatePdfFromHtml(htmlContent) {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+      ],
+    });
 
-  const pdfBuffer = await page.pdf({
-    format: "A4",
-    margin: {
-      top: "20mm",
-      bottom: "20mm",
-      left: "15mm",
-      right: "15mm",
-    },
-  });
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
-  await browser.close();
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      margin: {
+        top: "20mm",
+        bottom: "20mm",
+        left: "15mm",
+        right: "15mm",
+      },
+    });
 
-  return pdfBuffer;
+    return Buffer.from(pdfBuffer);
+  } catch (error) {
+    console.error("Puppeteer PDF generation failed:", error);
+    throw new Error("Failed to generate PDF document");
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeErr) {
+        console.error("Error closing Puppeteer browser instance:", closeErr);
+      }
+    }
+  }
 }
 
-async function generateResumePdf({ resume, selfDescription, jobDescription }) {
+async function generateResumePdf({ resume, selfDescription, jobDescription, title }) {
   const resumePdfJsonSchema = {
     type: "object",
     properties: {
@@ -185,9 +312,10 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
   };
 
   const prompt = `Generate resume for a candidate with the following details: 
-                    Resume: ${resume}
-                    Self Description: ${selfDescription}
-                    Job Description: ${jobDescription}
+                    ${title ? `Target Job Title: ${title}\n` : ""}
+                    Resume: ${resume || "Not provided"}
+                    Self Description: ${selfDescription || "Not provided"}
+                    Job Description: ${jobDescription || "Not provided"}
 
                     the response should be JSON object with a single field "html" which contains the HTML content of the resume which can be converted to PDF using any library like puppeteer
                     The resume should be tailored for the given job description and should highlight the candidate's strengths and relevant experience. The HTML content should be well-formatted and structured, making it easy to read and visually appealing.
@@ -196,20 +324,35 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                     The content should be ATS friendly, i.e. it should be easily parsable by ATS systems without losing important information.
                     The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity and make sure to include all the relevant information that can increase the candidate's chances of getting an interview call for the given job description.
                   `;
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: resumePdfJsonSchema,
-    },
-  });
+  try {
+    const aiCall = generateGeminiContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: resumePdfJsonSchema,
+      },
+    });
 
-  const jsonContent = JSON.parse(response.text);
+    const response = await withTimeout(
+      aiCall,
+      60000,
+      "Resume Tailoring",
+    );
 
-  const pdfBuffer = await generatePdfFromHtml(jsonContent.html);
+    const jsonContent = safeJsonParse(response.text);
 
-  return pdfBuffer;
+    if (!jsonContent || !jsonContent.html) {
+      throw new Error("Invalid resume format returned by AI");
+    }
+
+    const pdfBuffer = await generatePdfFromHtml(jsonContent.html);
+
+    return pdfBuffer;
+  } catch (err) {
+    console.error("Error in generateResumePdf:", err);
+    throw new Error("Failed to generate resume PDF. Please try again.");
+  }
 }
 
 module.exports = { generateInterviewReport, generateResumePdf };

@@ -1,6 +1,7 @@
 const { Router } = require('express')
 const authController = require("../controllers/auth.controller")
 const authMiddleware = require("../middlewares/auth.middleware")
+const { authLimiter } = require("../middlewares/rateLimit.middleware")
 
 const authRouter = Router()
 
@@ -9,14 +10,14 @@ const authRouter = Router()
  * @description Register a new user
  * @access Public
  */
-authRouter.post("/register", authController.registerUserController)
+authRouter.post("/register", authLimiter, authController.registerUserController)
 
 /**
  * @route POST /api/auth/login
  * @description login user with email and password
  * @access Public
  */
-authRouter.post("/login", authController.loginUserController)
+authRouter.post("/login", authLimiter, authController.loginUserController)
 
 /**
  * @route POST /api/auth/google
@@ -31,6 +32,7 @@ authRouter.post("/google", authController.googleAuthController)
  * @access Public
  */
 authRouter.get("/logout", authController.logoutUserController)
+authRouter.post("/logout", authController.logoutUserController)
 
 /**
  * @route GET /api/auth/get-me

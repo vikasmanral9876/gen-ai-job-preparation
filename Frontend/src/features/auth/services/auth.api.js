@@ -1,9 +1,27 @@
 import axios from "axios";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
 const api = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!error.response) {
+      error.message =
+        "Network connection error. Please check your internet connection.";
+    } else if (error.response.status === 429) {
+      error.message =
+        error.response.data?.message ||
+        "Too many authentication attempts. Please try again in 15 minutes.";
+    }
+    return Promise.reject(error);
+  },
+);
 
 export async function register({ username, email, password }) {
   try {

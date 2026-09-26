@@ -1,26 +1,59 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "../style/home.scss";
 import { useInterview } from "../hooks/useInterview.js";
-import { useNavigate } from "react-router";
-import { AlertCircle } from "../../../components/ui/Icons";
+import { useNavigate, useLocation } from "react-router";
+import {
+  saveStagedResume,
+  getStagedResume,
+  clearStagedResume,
+} from "../services/resumeStorage.js";
+import { AlertCircle, RotateCcw, X } from "../../../components/ui/Icons";
 import PlanLoadingState from "../components/PlanLoadingState";
 
 const Home = () => {
-  const { loading, generateReport, reports } = useInterview();
+  const location = useLocation();
+  const {
+    loading,
+    generateReport,
+    reports,
+    stagedResumeFile,
+    setStagedResumeFile,
+  } = useInterview();
   const [jobDescription, setJobDescription] = useState("");
   const [selfDescription, setSelfDescription] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(
+    location.state?.resumeFile || stagedResumeFile || null
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [generationError, setGenerationError] = useState(false);
   const resumeInputRef = useRef();
 
   const navigate = useNavigate();
+
+  // Auto-sync resume from navigation state, InterviewContext, or IndexedDB storage
+  useEffect(() => {
+    const passedFile = location.state?.resumeFile || stagedResumeFile;
+    if (passedFile) {
+      setSelectedFile(passedFile);
+    } else if (!selectedFile) {
+      getStagedResume().then((file) => {
+        if (file) {
+          setSelectedFile(file);
+          setStagedResumeFile(file);
+        }
+      });
+    }
+  }, [location.state, stagedResumeFile]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
+      setStagedResumeFile(file);
+      saveStagedResume(file);
       setErrorMessage("");
+      setGenerationError(false);
     }
   };
 
@@ -28,6 +61,8 @@ const Home = () => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedFile(null);
+    setStagedResumeFile(null);
+    clearStagedResume();
     if (resumeInputRef.current) {
       resumeInputRef.current.value = "";
     }
@@ -48,7 +83,10 @@ const Home = () => {
     const file = e.dataTransfer.files?.[0];
     if (file) {
       setSelectedFile(file);
+      setStagedResumeFile(file);
+      saveStagedResume(file);
       setErrorMessage("");
+      setGenerationError(false);
     }
   };
 
@@ -62,6 +100,7 @@ const Home = () => {
 
   const handleGenerateReport = async () => {
     setErrorMessage("");
+    setGenerationError(false);
     const resumeFile = selectedFile || resumeInputRef.current?.files?.[0];
     if (!resumeFile) {
       setErrorMessage("Please upload your resume (PDF) before generating the plan.");
@@ -82,11 +121,9 @@ const Home = () => {
         navigate(`/interview/${data._id}`);
       }
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to generate interview strategy. Please try again in a moment.";
-      setErrorMessage(msg);
+      console.error("Failed to generate interview strategy:", err);
+      setGenerationError(true);
+      setErrorMessage("We couldn't generate your interview. Please try again.");
     }
   };
 
@@ -94,6 +131,20 @@ const Home = () => {
     return (
       <PlanLoadingState
         title="Generating Your Custom Interview Plan"
+      />
+    );
+  }
+
+  if (generationError) {
+    return (
+      <PlanLoadingState
+        isError={true}
+        errorTitle="We couldn't generate your interview."
+        errorSubtitle="Please try again."
+        onRetry={handleGenerateReport}
+        onCancel={() => {
+          setGenerationError(false);
+        }}
       />
     );
   }
@@ -113,24 +164,48 @@ const Home = () => {
 
       {/* Error Alert Banner */}
       {errorMessage && (
-        <div
-          style={{
-            maxWidth: "1200px",
-            margin: "0 auto 1.5rem auto",
-            padding: "1rem 1.25rem",
-            background: "rgba(239, 68, 68, 0.12)",
-            border: "1px solid rgba(239, 68, 68, 0.35)",
-            borderRadius: "12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            color: "#f87171",
-            fontSize: "14px",
-            fontWeight: "500",
-          }}
-        >
-          <AlertCircle size={18} />
-          <span>{errorMessage}</span>
+        <div className="home-error-banner" role="alert">
+          <div className="home-error-banner__left">
+            <div className="home-error-banner__icon">
+              <AlertCircle size={20} />
+            </div>
+            <div className="home-error-banner__content">
+              {errorMessage.includes("couldn't generate") ? (
+                <>
+                  <strong className="home-error-banner__title">
+                    We couldn't generate your interview.
+                  </strong>
+                  <span className="home-error-banner__desc">Please try again.</span>
+                </>
+              ) : (
+                <span className="home-error-banner__text">{errorMessage}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="home-error-banner__actions">
+            {errorMessage.includes("couldn't generate") && (
+              <button
+                type="button"
+                onClick={handleGenerateReport}
+                className="home-error-banner__retry-btn"
+              >
+                <RotateCcw size={14} />
+                <span>Try Again</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setErrorMessage("");
+                setGenerationError(false);
+              }}
+              className="home-error-banner__close-btn"
+              aria-label="Dismiss error"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -361,7 +436,11 @@ const Home = () => {
           <span className="footer-info">
             AI-Powered Strategy Generation &bull; Approx 30s
           </span>
-          <button onClick={handleGenerateReport} className="generate-btn">
+          <button
+            onClick={handleGenerateReport}
+            className="generate-btn"
+            disabled={loading}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"

@@ -1,7 +1,10 @@
 import axios from "axios";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
 const api = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
@@ -36,11 +39,48 @@ export const getInterviewReportById = async (interviewId) => {
   return response.data;
 };
 
+// Response interceptor for user-friendly error normalization
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    // If response is a Blob (e.g. from responseType: "blob" on error), parse JSON from it
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const parsed = JSON.parse(text);
+        if (parsed) {
+          error.response.data = parsed;
+          if (parsed.message) error.message = parsed.message;
+        }
+      } catch (e) {
+        // Blob is not JSON, retain default error
+      }
+    }
+
+    if (!error.response) {
+      error.message =
+        "Network connection error. Please check your internet connection.";
+    } else if (error.response.status === 429) {
+      error.message =
+        error.response.data?.message ||
+        "Request limit reached. Please wait a few moments before trying again.";
+    } else if (error.response.status >= 500) {
+      error.message =
+        error.response.data?.message ||
+        "Failed to generate your resume PDF. Please try again shortly.";
+    }
+    return Promise.reject(error);
+  },
+);
+
 /**
  * @description Service to get all interview reports of logged in user.
  */
-export const getAllInterviewReports = async () => {
-  const response = await api.get("/api/interview/");
+export const getAllInterviewReports = async ({ page, limit } = {}) => {
+  const params = {};
+  if (page) params.page = page;
+  if (limit) params.limit = limit;
+  const response = await api.get("/api/interview/", { params });
 
   return response.data;
 };

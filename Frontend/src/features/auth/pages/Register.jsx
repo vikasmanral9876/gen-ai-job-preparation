@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import "../auth.form.scss";
@@ -15,7 +15,7 @@ import {
 } from "../../../components/ui/Icons";
 
 const Register = () => {
-  const { loading, handleRegister } = useAuth();
+  const { user, loading, handleRegister } = useAuth();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -23,6 +23,13 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // If already logged in, redirect directly to dashboard
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,7 +52,7 @@ const Register = () => {
     });
 
     if (result.success) {
-      navigate("/", { replace: true });
+      navigate("/dashboard", { replace: true });
     } else {
       setErrorMessage(result.error || "Failed to create account. Please try again.");
     }

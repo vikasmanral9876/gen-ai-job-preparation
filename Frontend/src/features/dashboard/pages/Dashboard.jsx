@@ -13,11 +13,12 @@ import "../dashboard.scss";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { reports, getReports, getResumePdf } = useInterview();
+  const { reports, getReports, getResumePdf, loading } = useInterview();
 
   const [activeDetailedReport, setActiveDetailedReport] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccessMessage, setDownloadSuccessMessage] = useState("");
+  const [downloadErrorMessage, setDownloadErrorMessage] = useState("");
 
   // Hook for roadmap tasks and activity tracking
   const { completedTasks, toggleTask, activityLog, addActivity } =
@@ -56,15 +57,20 @@ const Dashboard = () => {
     if (!reportId || isDownloading) return;
     setIsDownloading(true);
     setDownloadSuccessMessage("");
+    setDownloadErrorMessage("");
     try {
       await getResumePdf(reportId);
       addActivity("resume_downloaded", "Downloaded tailored ATS resume PDF", {
         reportId,
       });
-      setDownloadSuccessMessage("Resume PDF downloaded successfully.");
+      setDownloadSuccessMessage("PDF generated successfully");
       setTimeout(() => setDownloadSuccessMessage(""), 4000);
     } catch (err) {
       console.error("Error downloading resume:", err);
+      setDownloadErrorMessage(
+        err?.message || "Failed to generate your resume PDF. Please try again shortly."
+      );
+      setTimeout(() => setDownloadErrorMessage(""), 4000);
     } finally {
       setIsDownloading(false);
     }
@@ -72,7 +78,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-page">
-      {/* Download Alert Toast */}
+      {/* Download Alert Toasts */}
       {downloadSuccessMessage && (
         <div
           style={{
@@ -93,6 +99,26 @@ const Dashboard = () => {
         </div>
       )}
 
+      {downloadErrorMessage && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            background: "#ef4444",
+            color: "#ffffff",
+            padding: "0.75rem 1.25rem",
+            borderRadius: "8px",
+            fontSize: "0.85rem",
+            fontWeight: "600",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+            zIndex: 9999,
+          }}
+        >
+          {downloadErrorMessage}
+        </div>
+      )}
+
       {/* 1. Welcome Header & Primary CTA */}
       <WelcomeBanner user={user} plansCount={reports.length} />
 
@@ -107,6 +133,7 @@ const Dashboard = () => {
             reports={reports}
             onDownloadResume={handleDownloadResume}
             isDownloading={isDownloading}
+            loading={loading}
           />
 
           <PreparationProgress

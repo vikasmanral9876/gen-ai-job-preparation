@@ -13,7 +13,18 @@ export const useInterview = () => {
         throw new Error("useInterview must be used within an InterviewProvider")
     }
 
-    const { loading, setLoading, report, setReport, reports, setReports } = context
+    const {
+      loading,
+      setLoading,
+      report,
+      setReport,
+      reports,
+      setReports,
+      pagination,
+      setPagination,
+      stagedResumeFile,
+      setStagedResumeFile,
+    } = context;
 
     const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
         setLoading(true)
@@ -23,6 +34,29 @@ export const useInterview = () => {
             return response?.interviewReport
         } catch (error) {
             console.error("Error generating interview report:", error)
+            const rawMsg =
+              error?.response?.data?.message ||
+              error?.message ||
+              ""
+            const isGeminiDemand =
+              rawMsg.toLowerCase().includes("gemini") ||
+              rawMsg.toLowerCase().includes("demand") ||
+              rawMsg.toLowerCase().includes("overloaded") ||
+              rawMsg.toLowerCase().includes("503") ||
+              rawMsg.toLowerCase().includes("429") ||
+              rawMsg.toLowerCase().includes("temporarily unavailable") ||
+              rawMsg.toLowerCase().includes("quota") ||
+              rawMsg.toLowerCase().includes("resource_exhausted")
+
+            if (isGeminiDemand) {
+              const friendlyError = new Error("We couldn't generate your interview. Please try again.")
+              friendlyError.response = {
+                data: {
+                  message: "We couldn't generate your interview. Please try again.",
+                },
+              }
+              throw friendlyError
+            }
             throw error
         } finally {
             setLoading(false)
@@ -47,37 +81,43 @@ export const useInterview = () => {
         return response?.interviewReport
     }
 
-    const getReports = async () => {
+    const getReports = async ({ page, limit } = {}) => {
         setLoading(true)
         let response = null
         try {
-            response = await getAllInterviewReports()
+            response = await getAllInterviewReports({ page, limit })
             if (response?.interviewReports) {
                 setReports(response.interviewReports)
             }
+            if (response?.pagination) {
+                setPagination(response.pagination)
+            }
         } catch (error) {
-            console.error("Error fetching all reports:", error)
+            console.error("Error fetching reports:", error)
         } finally {
             setLoading(false)
         }
 
-        return response?.interviewReports || []
+        return response
     }
 
     const getResumePdf = async (interviewReportId) => {
         setLoading(true)
-        let response = null
         try {
-            response = await generateResumePdf({ interviewReportId })
+            const response = await generateResumePdf({ interviewReportId })
             const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
             const link = document.createElement("a")
             link.href = url
             link.setAttribute("download", `resume_${interviewReportId}.pdf`)
             document.body.appendChild(link)
             link.click()
+            link.remove()
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+            return response
         }
         catch (error) {
             console.error("Error generating resume PDF:", error)
+            throw error
         } finally {
             setLoading(false)
         }
@@ -115,11 +155,21 @@ export const useInterview = () => {
             if (!report || report._id !== interviewId) {
                 getReportById(interviewId)
             }
-        } else {
-            getReports()
         }
     }, [ interviewId ])
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, deleteReport }
+    return {
+      loading,
+      report,
+      reports,
+      pagination,
+      generateReport,
+      getReportById,
+      getReports,
+      getResumePdf,
+      deleteReport,
+      stagedResumeFile,
+      setStagedResumeFile,
+    };
 
 }

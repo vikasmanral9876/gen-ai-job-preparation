@@ -10,7 +10,7 @@ import {
   Loader2,
 } from "../../../components/ui/Icons";
 
-const RecentInterviews = ({ reports = [], onDownloadResume, isDownloading }) => {
+const RecentInterviews = ({ reports = [], onDownloadResume, isDownloading, loading = false }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredReports = reports.filter((item) =>
@@ -67,8 +67,14 @@ const RecentInterviews = ({ reports = [], onDownloadResume, isDownloading }) => 
           </div>
         )}
 
-        {/* List of reports */}
-        {filteredReports.length > 0 ? (
+        {/* List of reports / loading / empty */}
+        {loading && reports.length === 0 ? (
+          <div className="dash-empty-state" style={{ padding: "2.5rem 1.5rem" }}>
+            <Loader2 size={24} className="spin-loader" style={{ color: "#ff2d78", margin: "0 auto" }} />
+            <h3 style={{ marginTop: "0.75rem" }}>Loading interview plans...</h3>
+            <p>Retrieving your recent interview strategies.</p>
+          </div>
+        ) : filteredReports.length > 0 ? (
           <div className="interview-list">
             {filteredReports.map((report) => (
               <div key={report._id} className="interview-row">
